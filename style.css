@@ -14,7 +14,7 @@
   top: 52%;
   left: 62%;
   width: 28px;
-  height: 28px;                 /* fixed height (no inherit) */
+  height: 28px;                
   transform: translate(-50%, -50%);
   background: url("./icons/movement.svg") no-repeat center / contain;
   pointer-events: none;
@@ -50,7 +50,8 @@
    On-diagram badges (top-left inside the task)
    ───────────────────────────────────────────── */
 .djs-overlay-binding-badge,
-.djs-overlay-unbinding-badge {
+.djs-overlay-unbinding-badge,
+.djs-overlay-movement-badge {
   z-index: 1000 !important;      /* keep above node content */
 }
 
@@ -67,13 +68,13 @@
 }
 
 .movement-badge { 
-  height: 35px ;
+  height: 35px;
   width: 40px;
   margin: 0 0 0 0;   
   background-image: url("./icons/movement.svg"); 
 }
-.binding-badge     { background-image: url("./icons/binding.svg"); }
-.unbinding-badge   { background-image: url("./icons/unbinding.svg"); }
+.binding-badge   { background-image: url("./icons/binding.svg"); }
+.unbinding-badge { background-image: url("./icons/unbinding.svg"); }
 
 /* ─────────────────────────────────────────────
    Type menu + movement form
