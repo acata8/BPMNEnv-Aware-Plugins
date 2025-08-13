@@ -1,0 +1,22 @@
+{
+  "name": "space",
+  "uri": "http://example.com/space",
+  "prefix": "space",
+  "xml": { "tagAlias": "lowerCase" },
+  "types": [
+    {
+      "name": "Destination",
+      "superClass": ["Element"],
+      "properties": [
+        { "name": "value", "type": "String", "isBody": true }
+      ]
+    },
+    {
+      "name": "Type",
+      "superClass": ["Element"],
+      "properties": [
+        { "name": "value", "type": "String", "isBody": true }
+      ]
+    }
+  ]
+}
