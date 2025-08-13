@@ -1,36 +1,83 @@
-/* Palette entry: task square + small centered glyph */
-.djs-palette .entry.movement-overlay {
+/* ─────────────────────────────────────────────
+   Palette entries: task square + centered glyph
+   ───────────────────────────────────────────── */
+.djs-palette .entry.movement-overlay,
+.djs-palette .entry.binding-overlay,
+.djs-palette .entry.unbinding-overlay {
   position: relative;
 }
 
+/* Movement icon in palette */
 .djs-palette .entry.movement-overlay::after {
+  content: '';
+  position: absolute;
+  top: 52%;
+  left: 62%;
+  width: 28px;
+  height: 28px;                 /* fixed height (no inherit) */
+  transform: translate(-50%, -50%);
+  background: url("./icons/movement.svg") no-repeat center / contain;
+  pointer-events: none;
+}
+
+/* Bind icon in palette */
+.djs-palette .entry.binding-overlay::after {
   content: '';
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 16px;
-  height: 16px;
+  width: 28px;
+  height: 28px;
   transform: translate(-50%, -50%);
-  background-image: url("./icons/movement.svg");
-  /* ← file, not base64 */
+  background: url("./icons/binding.svg") no-repeat center / contain;
+  pointer-events: none;
+}
+
+/* Unbind icon in palette */
+.djs-palette .entry.unbinding-overlay::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 28px;
+  height: 28px;
+  transform: translate(-50%, -50%);
+  background: url("./icons/unbinding.svg") no-repeat center / contain;
+  pointer-events: none;
+}
+
+/* ─────────────────────────────────────────────
+   On-diagram badges (top-left inside the task)
+   ───────────────────────────────────────────── */
+.djs-overlay-binding-badge,
+.djs-overlay-unbinding-badge {
+  z-index: 1000 !important;      /* keep above node content */
+}
+
+.binding-badge,
+.unbinding-badge,
+.movement-badge {
+  width: 45px;
+  height: 25px;
+  margin: 3px 0 0 0;           /* inset from top-left corner */
   background-repeat: no-repeat;
   background-position: center;
   background-size: contain;
   pointer-events: none;
 }
 
-/* On-diagram badge (top-right corner of the task) */
-.movement-di-badge {
-  width: 16px;
-  height: 16px;
-  background-image: url("./icons/movement.svg");
-  /* ← file, not base64 */
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: contain;
-  pointer-events: none;
+.movement-badge { 
+  height: 35px ;
+  width: 40px;
+  margin: 0 0 0 0;   
+  background-image: url("./icons/movement.svg"); 
 }
+.binding-badge     { background-image: url("./icons/binding.svg"); }
+.unbinding-badge   { background-image: url("./icons/unbinding.svg"); }
 
+/* ─────────────────────────────────────────────
+   Type menu + movement form
+   ───────────────────────────────────────────── */
 .movement-type-menu,
 .movement-dest-editor {
   font: 12px/1.4 system-ui, sans-serif;
@@ -47,10 +94,40 @@
   margin-bottom: 6px;
 }
 
+/* one button per row */
 .movement-type-menu .buttons {
   display: flex;
+  flex-direction: column;
   gap: 8px;
-  flex-wrap: wrap;
+}
+
+.movement-type-menu .btn {
+  display: grid;
+  grid-template-columns: 34px 1fr; /* fixed icon col + flexible label col */
+  align-items: center;
+  column-gap: 8px;                 /* ← was `1` (no unit) */
+  padding: 6px 12px;
+  border: 1px solid #cfcfcf;
+  background: #f7f7f7;
+  border-radius: 6px;
+  cursor: pointer;
+  margin: 0;
+}
+
+.movement-type-menu .btn img {
+  width: 30px !important;
+  height: 30px !important;
+  object-fit: contain;
+  justify-self: center;
+  align-self: center;
+  display: block;
+}
+
+.movement-type-menu .btn span {
+  font-weight: 600;
+  line-height: 1.2;
+  align-self: center;
+  color: #111;
 }
 
 .movement-type-menu .btn.primary {
@@ -59,9 +136,15 @@
   color: #fff;
 }
 
-.movement-type-menu .row {
-  margin: 8px 0;
+.movement-type-menu .btn.primary span {
+  color: inherit;
 }
+
+.movement-type-menu .btn.primary img {
+  filter: invert(1) brightness(2); /* make dark SVGs appear white */
+}
+
+.movement-type-menu .row { margin: 8px 0; }
 
 .movement-type-menu input {
   width: 100%;
@@ -86,60 +169,5 @@
   cursor: pointer;
 }
 
-.movement-type-menu .actions .btn-save {
-  background: #0b5fff;
-  color: #fff;
-}
-
-.movement-type-menu .actions .btn-cancel {
-  background: #eee;
-  color: #333;
-}
-
-/* one button per row */
-.movement-type-menu .buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.movement-type-menu .btn {
-      display: grid;
-    grid-template-columns: 34px 1fr;
-    align-items: center;
-    column-gap: 1;
-    padding: 4px 11px;
-    border: 1px solid #cfcfcf;
-    background: #f7f7f7;
-    border-radius: 6px;
-    cursor: pointer;
-    margin: 0;
-}
-
-.movement-type-menu .btn img {
-  height: 30px !important;
-  width: 30px !important;
-  object-fit: contain;   
-  justify-self: center;
-  align-self: center;
-  display: block;
-}
-
-/* label cell */
-.movement-type-menu .btn span {
-  font-weight: 600;
-  line-height: 1.2;   
-  align-self: center;
-}
-
-/* primary state (keeps your look) */
-.movement-type-menu .btn.primary {
-  background: #0b5fff;
-  border-color: #0b5fff;
-  color: #fff;
-}
-
-/* optional: make black SVGs appear white on primary */
-.movement-type-menu .btn.primary img {
-  filter: invert(1) brightness(2);
-}
+.movement-type-menu .actions .btn-save { background: #0b5fff; color: #fff; }
+.movement-type-menu .actions .btn-cancel { background: #eee; color: #333; }
