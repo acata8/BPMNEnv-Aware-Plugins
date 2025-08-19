@@ -1,22 +1,18 @@
-// Runs inside Camunda Modeler (Renderer process)
-
 import {
   registerBpmnJSPlugin,
   registerBpmnJSModdleExtension
 } from 'camunda-modeler-plugin-helpers';
 
-// Custom moddle for <space:destination> and <space:type>
 import spaceModdle from './space-moddle.json';
-
-// Unified modules
 import TypedPaletteProvider from './modules/TypedPaletteProvider';
 import TypedOverlay from './modules/TypedOverlay';
 import MovementContextPadProvider from './modules/MovementContextPadProvider';
 
-// --- Register moddle ---
-registerBpmnJSModdleExtension(spaceModdle);
+// Register services as bpmn-js modules
+import ServicesModule from './services/ServicesModule';
 
-// --- Register plugins ---
+registerBpmnJSModdleExtension(spaceModdle);
+registerBpmnJSPlugin(ServicesModule); // Register services first
 registerBpmnJSPlugin(TypedPaletteProvider);
 registerBpmnJSPlugin(TypedOverlay);
 registerBpmnJSPlugin(MovementContextPadProvider);

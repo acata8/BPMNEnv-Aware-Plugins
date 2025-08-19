@@ -1,54 +1,52 @@
-import TASK_TYPES from './TaskTypes';
+import { getAllTaskTypes, getTaskConfig } from './TaskTypes';
 
-function TypedPaletteProvider(palette, create, elementFactory, translate) {
+function TypedPaletteProvider(palette, create, elementFactory, translate, taskTypeService) {
   this._create = create;
   this._elementFactory = elementFactory;
   this._translate = translate;
+  this._taskTypeService = taskTypeService;
+  
   palette.registerProvider(this);
 }
 
-TypedPaletteProvider.$inject = ['palette', 'create', 'elementFactory', 'translate'];
+TypedPaletteProvider.$inject = ["palette", "create", "elementFactory", "translate", "taskTypeService"];
 
-TypedPaletteProvider.prototype.getPaletteEntries = function () {
+TypedPaletteProvider.prototype.getPaletteEntries = function() {
   const { _create: create, _elementFactory: elementFactory, _translate: t } = this;
 
-  function createTask(event, cfg) {
-    const shape = elementFactory.createShape({ type: 'bpmn:Task' });
-    const bo = shape.businessObject;
+  const createTaskForType = (event, typeKey) => {
+    const config = getTaskConfig(typeKey);
+    if (!config) return;
 
-    bo.name = cfg.defaultName;
+    const shape = elementFactory.createShape({ type: "bpmn:Task" });
+    shape.businessObject.name = t(config.displayName);
 
-    const moddle = bo.$model;
-    if (!bo.extensionElements) {
-      bo.extensionElements = moddle.create('bpmn:ExtensionElements', { values: [] });
-    }
-
-    const typeEl = moddle.create('space:Type', { value: cfg.typeValue });
-
-    bo.extensionElements.values = [
-      ...(bo.extensionElements.values || []),
-      ...(cfg.extraExt ? cfg.extraExt(moddle) : []),
-      typeEl
-    ];
+    // Use TaskTypeService to set up the task properly
+    // Note: This will be called after the shape is created in the modeler
+    setTimeout(() => {
+      this._taskTypeService.setTaskType(shape, typeKey);
+    }, 0);
 
     create.start(event, shape);
-  }
+  };
 
-  return TASK_TYPES.reduce((entries, cfg) => {
-    entries[`${cfg.key}.task`] = {
-      group: 'activity',
-      className: `bpmn-icon-task ${cfg.iconClass}`,
-      title: t(`Create ${cfg.key.toUpperCase()} Task`),
+  const entries = {};
+  getAllTaskTypes().forEach(config => {
+    entries[`${config.key}.task`] = {
+      group: "activity",
+      className: `bpmn-icon-task ${config.icon.class}`,
+      title: t(`Create ${config.typeValue.toUpperCase()} Task`),
       action: {
-        dragstart: (e) => createTask(e, cfg),
-        click: (e) => createTask(e, cfg)
+        dragstart: (e) => createTaskForType(e, config.key),
+        click: (e) => createTaskForType(e, config.key)
       }
     };
-    return entries;
-  }, {});
+  });
+
+  return entries;
 };
 
 export default {
-  __init__: ['typedPaletteProvider'],
-  typedPaletteProvider: ['type', TypedPaletteProvider]
+  __init__: ["typedPaletteProvider"],
+  typedPaletteProvider: ["type", TypedPaletteProvider]
 };

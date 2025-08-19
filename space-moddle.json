@@ -1,21 +1,28 @@
 {
   "name": "space",
-  "uri": "http://example.com/space",
+  "uri": "http://space",
   "prefix": "space",
   "xml": { "tagAlias": "lowerCase" },
   "types": [
     {
-      "name": "Destination",
-      "superClass": ["Element"],
+      "name": "Type",
+      "superClass": [ "Element" ],
       "properties": [
-        { "name": "value", "type": "String", "isBody": true }
+        { "name": "body", "isBody": true, "type": "String" }
       ]
     },
     {
-      "name": "Type",
-      "superClass": ["Element"],
+      "name": "Destination",
+      "superClass": [ "Element" ],
       "properties": [
-        { "name": "value", "type": "String", "isBody": true }
+        { "name": "body", "isBody": true, "type": "String" }
+      ]
+    },
+    {
+      "name": "Binding",
+      "superClass": [ "Element" ],
+      "properties": [
+        { "name": "body", "isBody": true, "type": "String" }
       ]
     }
   ]
