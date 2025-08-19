@@ -69,7 +69,7 @@ class FormHandlers {
       }
       
       this.extensionService.setExtension(element, "space:Destination", newDestination);
-      this.createOrUpdateDestLabel(element, newDestination);
+      // Remove the text annotation creation - destination is stored in extension only
       onComplete(); // Close after save
     };
 
@@ -197,6 +197,9 @@ class FormHandlers {
     }
 
     const currentBinding = this.extensionService.getBinding(element);
+    
+    // If no current binding, default to first available participant
+    const defaultBinding = currentBinding || participants[0]?.id;
 
     container.innerHTML = `
       <div class="menu-header">
@@ -205,32 +208,66 @@ class FormHandlers {
           <span class="close-icon">×</span>
         </button>
       </div>
+      
+      <div class="current-binding-info">
+        <div class="config-status">
+          <span class="config-text">${translate("Current binding")}: ${currentBinding ? this.escapeHtml(this.getParticipantNameById(currentBinding) || currentBinding) : translate("Will be set to first available")}</span>
+        </div>
+      </div>
+      
       <div class="row">
-        <select class="form-select" style="width:100%;padding:8px;border:1px solid #cfcfcf;border-radius:6px;outline:none;">
-          ${participants.map(p => `<option value="${p.id}">${this.escapeHtml(p.name)}</option>`).join("")}
+        <label class="form-label">${translate("Select Participant to Bind")}</label>
+        <select class="form-select binding-select" style="width:100%;padding:8px;border:1px solid #cfcfcf;border-radius:6px;outline:none;" required>
+          ${participants.map(p => 
+            `<option value="${p.id}" ${p.id === defaultBinding ? 'selected' : ''}>${this.escapeHtml(p.name)}</option>`
+          ).join("")}
         </select>
       </div>
+      
+      <div class="row">
+        <small class="help-text">${translate("Choose which participant (pool) this task should bind to. A binding is required.")}</small>
+      </div>
+      
       <div class="actions">
         <button type="button" class="btn-save">${translate("Save")}</button>
         <button type="button" class="btn-cancel">${translate("Cancel")}</button>
       </div>
     `;
 
-    const select = container.querySelector(".form-select");
-    if (currentBinding) {
-      const option = Array.from(select.options).find(o => o.value === currentBinding);
-      if (option) select.value = currentBinding;
+    const select = container.querySelector(".binding-select");
+    
+    // Ensure a value is always selected
+    if (!select.value && participants.length > 0) {
+      select.value = participants[0].id;
     }
+    
+    // Focus on the select element
+    setTimeout(() => {
+      select.focus();
+    }, 0);
 
     const onSave = () => {
-      this.extensionService.setExtension(element, "space:Binding", select.value);
-      onComplete(); // Close after save
+      const selectedValue = select.value;
+      // Always require a binding - never allow null/empty
+      if (selectedValue) {
+        this.extensionService.setExtension(element, "space:Binding", selectedValue);
+        onComplete(); // Close after save
+      } else {
+        // This shouldn't happen since we remove the empty option, but just in case
+        console.warn("No participant selected for binding");
+      }
     };
 
-    this.attachFormHandlers(container, onSave, onComplete);
+    this.attachFormHandlers(container, onSave, onComplete, select);
   }
 
-  // ... (rest of the existing methods remain the same)
+  // Helper method to get participant name by ID
+  getParticipantNameById(participantId) {
+    const participant = this.elementRegistry.get(participantId);
+    return participant?.businessObject?.name || participantId;
+  }
+
+  // Utility methods for form handling
   attachFormHandlers(container, onSave, onCancel, focusElement = null) {
     container.querySelector(".btn-save")?.addEventListener("click", onSave);
     container.querySelector(".btn-cancel")?.addEventListener("click", onCancel);
@@ -269,36 +306,6 @@ class FormHandlers {
     });
   }
 
-  createOrUpdateDestLabel(element, value) {
-    const displayText = value?.trim() || "${destination}";
-    const existing = this.findDestAnnotation(element);
-
-    if (existing) {
-      this.modeling.updateModdleProperties(existing, existing.businessObject, {
-        text: displayText
-      });
-      return;
-    }
-
-    const annotationShape = this.elementFactory.createShape({ type: "bpmn:TextAnnotation" });
-    annotationShape.businessObject.text = displayText;
-
-    const dy = Math.max(60, element.height * 0.8);
-    const pos = { x: element.x, y: element.y + element.height / 2 + dy };
-
-    const created = this.modeling.createShape(annotationShape, pos, element.parent);
-    this.modeling.connect(element, created, { type: "bpmn:Association" });
-  }
-
-  findDestAnnotation(element) {
-    const candidates = (element.outgoing || [])
-      .filter(conn => conn.type === "bpmn:Association" && 
-                     conn.target?.type === "bpmn:TextAnnotation")
-      .map(conn => conn.target);
-
-    return candidates.length === 1 ? candidates[0] : null;
-  }
-
   escapeHtml(str) {
     return String(str || "")
       .replace(/&/g, "&amp;")
@@ -335,7 +342,80 @@ MovementContextPadProvider.$inject = [
   "extensionService", "validationService", "taskTypeService", "environmentService"
 ];
 
-// ... (rest of the existing MovementContextPadProvider methods remain the same)
+// Enhanced context pad entries to include edit options for current types
+MovementContextPadProvider.prototype.getContextPadEntries = function(element) {
+  if (element?.type !== "bpmn:Task") return {};
+
+  const currentType = this.extensionService.getCurrentType(element);
+  const entries = {};
+
+  // Always show the main type menu
+  entries["movement.open-type-menu"] = {
+    group: "edit",
+    className: "bpmn-icon-subprocess-collapsed",
+    title: this._translate("Set Type…"),
+    action: { click: () => this._openMenu(element) }
+  };
+
+  // Add specific edit entries for current type
+  if (currentType === "movement") {
+    entries["movement.edit-destination"] = {
+      group: "edit",
+      className: "bpmn-icon-conditional-flow",
+      title: this._translate("Edit Destination"),
+      action: { click: () => this._openDirectEditForm(element, "destination") }
+    };
+  } else if (currentType === "binding") {
+    entries["movement.edit-binding"] = {
+      group: "edit", 
+      className: "bpmn-icon-connection-multi",
+      title: this._translate("Edit Participant Binding"),
+      action: { click: () => this._openDirectEditForm(element, "binding") }
+    };
+  }
+
+  return entries;
+};
+
+// New method to open edit forms directly
+MovementContextPadProvider.prototype._openDirectEditForm = function(element, formType) {
+  this._contextPad.close();
+  this._closeMenu(element);
+
+  const container = document.createElement("div");
+  container.className = "movement-type-menu";
+
+  const overlayId = this._overlays.add(element, "movement-type-menu", {
+    position: { top: 8, left: 8 },
+    html: container,
+    scale: true
+  });
+  this._openMenus.set(element.id, overlayId);
+
+  const config = getTaskConfig(this.extensionService.getCurrentType(element));
+  
+  if (formType === "destination" && config) {
+    this.formHandlers.renderDestinationForm(container, element, config, this._translate, () => {
+      this._closeMenu(element);
+    });
+  } else if (formType === "binding" && config) {
+    this.formHandlers.renderBindingForm(container, element, config, this._translate, () => {
+      this._closeMenu(element);
+    });
+  }
+
+  // Close on Escape key
+  container.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      this._closeMenu(element);
+    }
+  });
+
+  // Make the container focusable for keyboard interaction
+  container.setAttribute("tabindex", "-1");
+  setTimeout(() => container.focus(), 0);
+};
+
 MovementContextPadProvider.prototype._openMenu = function(element) {
   this._contextPad.close();
   this._closeMenu(element);
@@ -395,10 +475,19 @@ MovementContextPadProvider.prototype._createEnhancedMenuMarkup = function(elemen
       buttonClass += ' btn-warning'; // Whole button orange for warnings
     }
     
-    // Special text for movement when it's current type
-    const buttonText = (isCurrentType && config.key === "movement") 
-      ? translate("Edit Destination") 
-      : translate(config.typeValue);
+    // Special text for current types - show "Edit" instead of type name
+    let buttonText;
+    if (isCurrentType) {
+      if (config.key === "movement") {
+        buttonText = translate("Edit Destination");
+      } else if (config.key === "binding") {
+        buttonText = translate("Edit Participant");
+      } else {
+        buttonText = translate("Edit ") + translate(config.typeValue);
+      }
+    } else {
+      buttonText = translate(config.typeValue);
+    }
     
     // Get warning message for tooltip
     const warningTooltip = hasWarnings && validation.warnings && validation.warnings[0] 
@@ -425,12 +514,18 @@ MovementContextPadProvider.prototype._createEnhancedMenuMarkup = function(elemen
     `;
   }).join('');
 
-  // Show current destination for movement tasks
+  // Show current info for configured tasks
   let currentInfo = "";
   if (currentType === "movement") {
     const currentDestination = this.extensionService.getDestination(element);
     currentInfo = `<div class="current-destination">
       ${translate("Current destination")}: <strong>${currentDestination || "${destination}"}</strong>
+    </div>`;
+  } else if (currentType === "binding") {
+    const currentBinding = this.extensionService.getBinding(element);
+    const participantName = currentBinding ? this.formHandlers.getParticipantNameById(currentBinding) : null;
+    currentInfo = `<div class="current-destination">
+      ${translate("Current binding")}: <strong>${participantName || currentBinding || translate("None selected")}</strong>
     </div>`;
   }
 
@@ -477,9 +572,14 @@ MovementContextPadProvider.prototype._handleTypeSelection = function(element, ty
   const currentType = this.extensionService.getCurrentType(element);
   
   if (currentType === typeKey) {
-    // Same type selected - for movement, go directly to destination edit
+    // Same type selected - go directly to appropriate edit form
     if (typeKey === "movement") {
       this.formHandlers.renderDestinationForm(container, element, config, translate, () => {
+        this._closeMenu(element);
+      });
+      return;
+    } else if (typeKey === "binding") {
+      this.formHandlers.renderBindingForm(container, element, config, translate, () => {
         this._closeMenu(element);
       });
       return;
@@ -567,19 +667,6 @@ MovementContextPadProvider.prototype._closeMenu = function(element) {
     this._overlays.remove(overlayId);
     this._openMenus.delete(element.id);
   }
-};
-
-MovementContextPadProvider.prototype.getContextPadEntries = function(element) {
-  if (element?.type !== "bpmn:Task") return {};
-
-  return {
-    "movement.open-type-menu": {
-      group: "edit",
-      className: "bpmn-icon-subprocess-collapsed",
-      title: this._translate("Set Type…"),
-      action: { click: () => this._openMenu(element) }
-    }
-  };
 };
 
 export default {

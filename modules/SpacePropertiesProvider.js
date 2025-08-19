@@ -18,8 +18,17 @@ function SpacePropertiesProvider(
       const element = event.newSelection[0];
       
       if (element.type === 'bpmn:Task') {
+        console.log('Task selected:', element.id);
         setTimeout(() => this.createStandaloneSpaceSection(element), 200);
+      } else {
+        // Not a task - hide space properties section
+        console.log('Non-task selected, hiding space properties');
+        this.hideSpaceSection();
       }
+    } else {
+      // No selection or multiple selection - hide space properties section
+      console.log('No task selection, hiding space properties');
+      this.hideSpaceSection();
     }
   });
 
@@ -41,7 +50,16 @@ SpacePropertiesProvider.$inject = [
   'taskTypeService'
 ];
 
+SpacePropertiesProvider.prototype.hideSpaceSection = function() {
+  const existingSection = document.querySelector('.space-properties-section');
+  if (existingSection) {
+    console.log('Removing space properties section');
+    existingSection.remove();
+  }
+};
+
 SpacePropertiesProvider.prototype.createStandaloneSpaceSection = function(element) {
+  console.log('Creating standalone space properties section for:', element.id);
   
   const propertiesPanel = document.querySelector('.bio-properties-panel-scroll-container');
   if (!propertiesPanel) {
@@ -66,6 +84,8 @@ SpacePropertiesProvider.prototype.createStandaloneSpaceSection = function(elemen
     // Fallback: add at the beginning
     propertiesPanel.insertBefore(spaceSection, propertiesPanel.firstChild);
   }
+
+  console.log('✅ Standalone space section created and inserted');
 };
 
 SpacePropertiesProvider.prototype.createSpaceSection = function(element) {
@@ -161,6 +181,8 @@ SpacePropertiesProvider.prototype.createSpaceSection = function(element) {
 };
 
 SpacePropertiesProvider.prototype.attachSectionEventListeners = function(section, element) {
+  console.log('Attaching event listeners to standalone space section');
+
   // Toggle section expand/collapse
   const toggleButton = section.querySelector('.bio-properties-panel-group-header-button');
   const header = section.querySelector('.bio-properties-panel-group-header');
@@ -194,6 +216,7 @@ SpacePropertiesProvider.prototype.attachSectionEventListeners = function(section
         }
       }
       
+      console.log('Section toggled:', isOpen ? 'closed' : 'opened');
     });
   }
 
@@ -202,15 +225,20 @@ SpacePropertiesProvider.prototype.attachSectionEventListeners = function(section
   const destinationInput = section.querySelector('.space-destination-input');
   const bindingInput = section.querySelector('.space-binding-input');
 
-  // Type selection - save to XML
+  // Type selection - immediate save to XML
   if (typeSelect) {
     typeSelect.addEventListener('change', (e) => {
+      console.log('🔄 Type changed to:', e.target.value);
+      
       try {
         const newType = e.target.value;
+        
         if (newType) {
           this._taskTypeService.setTaskType(element, newType);
+          console.log('✅ Type saved to XML:', newType);
         } else {
           this._taskTypeService.clearTaskType(element);
+          console.log('✅ Type cleared from XML');
         }
 
         // Update UI immediately
@@ -218,7 +246,7 @@ SpacePropertiesProvider.prototype.attachSectionEventListeners = function(section
         this.updateSectionIndicators(section, element);
 
       } catch (error) {
-        console.error('Error changing type:', error);
+        console.error('❌ Error changing type:', error);
       }
     });
   }
@@ -226,18 +254,20 @@ SpacePropertiesProvider.prototype.attachSectionEventListeners = function(section
   // Destination input - save on change
   if (destinationInput) {
     ['input', 'blur', 'change'].forEach(eventType => {
-      destinationInput.addEventListener(eventType, (e) => {;
+      destinationInput.addEventListener(eventType, (e) => {
+        console.log(`🔄 Destination ${eventType}:`, e.target.value);
         
         try {
           const value = e.target.value.trim();
           if (value) {
             this._extensionService.setExtension(element, 'space:Destination', value);
+            console.log('✅ Destination saved to XML:', value);
           }
           
           this.updateSectionIndicators(section, element);
           
         } catch (error) {
-          console.error('Error saving destination:', error);
+          console.error('❌ Error saving destination:', error);
         }
       });
     });
@@ -247,17 +277,19 @@ SpacePropertiesProvider.prototype.attachSectionEventListeners = function(section
   if (bindingInput) {
     ['input', 'blur', 'change'].forEach(eventType => {
       bindingInput.addEventListener(eventType, (e) => {
+        console.log(`🔄 Binding ${eventType}:`, e.target.value);
         
         try {
           const value = e.target.value.trim();
           if (value) {
             this._extensionService.setExtension(element, 'space:Binding', value);
+            console.log('✅ Binding saved to XML:', value);
           }
           
           this.updateSectionIndicators(section, element);
           
         } catch (error) {
-          console.error('Error saving binding:', error);
+          console.error('❌ Error saving binding:', error);
         }
       });
     });
@@ -325,6 +357,7 @@ SpacePropertiesProvider.prototype.updateSectionIndicators = function(section, el
 SpacePropertiesProvider.prototype.refreshSpaceSection = function(element) {
   const existingSection = document.querySelector('.space-properties-section');
   if (existingSection && element) {
+    console.log('Refreshing space section with latest XML values');
     
     // Update form fields with current XML values
     const currentType = this._extensionService.getCurrentType(element);
@@ -353,7 +386,7 @@ SpacePropertiesProvider.prototype.getStatusText = function(element, currentType)
   }
   
   const config = getTaskConfig(currentType);
-  let status = `<strong>${translate('Status')}:</strong> ${config.typeValue} ${translate('configured')} ✅`;
+  let status = `<strong>${translate('Status')}:</strong> ${config.typeValue} ${translate('configured')}`;
   
   if (currentType === 'movement') {
     const destination = this._extensionService.getDestination(element);
