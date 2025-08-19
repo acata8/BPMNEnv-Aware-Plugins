@@ -1,11 +1,13 @@
 import { getAllTaskTypes, getTaskConfig } from './TaskTypes';
 
+// Enhanced Form Handlers class with environment integration
 class FormHandlers {
-  constructor(extensionService, elementRegistry, modeling, elementFactory) {
+  constructor(extensionService, elementRegistry, modeling, elementFactory, environmentService) {
     this.extensionService = extensionService;
     this.elementRegistry = elementRegistry;
     this.modeling = modeling;
     this.elementFactory = elementFactory;
+    this.environmentService = environmentService; // New environment service
   }
 
   renderForm(container, element, config, translate, onComplete) {
@@ -23,6 +25,8 @@ class FormHandlers {
 
   renderDestinationForm(container, element, config, translate, onComplete) {
     const currentValue = this.extensionService.getDestination(element);
+    const hasEnvConfig = this.environmentService.hasConfiguration();
+    const availableDestinations = hasEnvConfig ? this.environmentService.getAvailableDestinations() : [];
 
     container.innerHTML = `
       <div class="menu-header">
@@ -31,12 +35,9 @@ class FormHandlers {
           <span class="close-icon">×</span>
         </button>
       </div>
-      <div class="row">
-        <input type="text" class="form-input" placeholder="${config.defaultDestination}" value="${currentValue}" />
-      </div>
-      <div class="row">
-        <small class="help-text">${translate("Specify where this movement should go")}</small>
-      </div>
+      
+      ${hasEnvConfig ? this._renderEnvironmentDestinationForm(currentValue, availableDestinations, translate) : this._renderManualDestinationForm(currentValue, config, translate)}
+      
       <div class="actions">
         <button type="button" class="btn-save">${translate("Save")}</button>
         <button type="button" class="btn-cancel">${translate("Cancel")}</button>
@@ -44,21 +45,133 @@ class FormHandlers {
     `;
 
     const input = container.querySelector(".form-input");
+    const select = container.querySelector(".destination-select");
     
-    // Auto-select text for easy editing
-    setTimeout(() => {
-      input.focus();
-      input.select();
-    }, 0);
+    // Set up input handlers based on mode
+    if (hasEnvConfig && select) {
+      this._setupEnvironmentDestinationHandlers(container, currentValue, availableDestinations);
+    } else if (input) {
+      // Auto-select text for easy editing
+      setTimeout(() => {
+        input.focus();
+        input.select();
+      }, 0);
+    }
 
     const onSave = () => {
-      const newDestination = input.value.trim() || config.defaultDestination;
+      let newDestination;
+      if (hasEnvConfig && select) {
+        newDestination = select.value;
+      } else if (input) {
+        newDestination = input.value.trim() || config.defaultDestination;
+      } else {
+        newDestination = config.defaultDestination;
+      }
+      
       this.extensionService.setExtension(element, "space:Destination", newDestination);
       this.createOrUpdateDestLabel(element, newDestination);
-      onComplete(newDestination); // Pass the destination value back
+      onComplete(); // Close after save
     };
 
-    this.attachFormHandlers(container, onSave, () => onComplete(null), input);
+    this.attachFormHandlers(container, onSave, onComplete, input || select);
+  }
+
+  _renderEnvironmentDestinationForm(currentValue, availableDestinations, translate) {
+    const configSummary = this.environmentService.getConfigSummary();
+    
+    return `
+      <div class="env-config-info">
+        <div class="config-status">
+          <span class="config-icon">📄</span>
+          <span class="config-text">${translate("Environment loaded")}: ${configSummary.fileName}</span>
+        </div>
+        <div class="config-summary">
+          ${configSummary.summary.places} ${translate("places available")}
+        </div>
+      </div>
+      
+      <div class="row">
+        <label class="form-label">${translate("Select Destination")}</label>
+        <select class="destination-select form-select" style="width:100%;padding:8px;border:1px solid #cfcfcf;border-radius:6px;outline:none;">
+          <option value="">${translate("-- Select a place --")}</option>
+          ${availableDestinations.map(dest => 
+            `<option value="${this.escapeHtml(dest)}" ${dest === currentValue ? 'selected' : ''}>${this.escapeHtml(dest)}</option>`
+          ).join("")}
+        </select>
+      </div>
+      
+      <div class="row">
+        <input type="text" class="form-input" placeholder="${translate("Or enter custom destination")}" value="${currentValue && !availableDestinations.includes(currentValue) ? currentValue : ''}" />
+      </div>
+      
+      <div class="row">
+        <small class="help-text">${translate("Choose from available places or enter a custom destination")}</small>
+      </div>
+    `;
+  }
+
+  _renderManualDestinationForm(currentValue, config, translate) {
+    return `
+      <div class="env-config-info env-config-missing">
+        <div class="config-status">
+          <span class="config-icon">⚠️</span>
+          <span class="config-text">${translate("No environment configuration loaded")}</span>
+        </div>
+        <div class="config-action">
+          <small>${translate("Load an environment.json file to see available destinations")}</small>
+        </div>
+      </div>
+      
+      <div class="row">
+        <input type="text" class="form-input" placeholder="${config.defaultDestination}" value="${currentValue}" />
+      </div>
+      <div class="row">
+        <small class="help-text">${translate("Specify where this movement should go")}</small>
+      </div>
+    `;
+  }
+
+  _setupEnvironmentDestinationHandlers(container, currentValue, availableDestinations) {
+    const select = container.querySelector(".destination-select");
+    const input = container.querySelector(".form-input");
+    
+    // Handle select changes
+    select.addEventListener('change', () => {
+      if (select.value) {
+        input.value = ''; // Clear manual input when selecting from list
+      }
+    });
+    
+    // Handle manual input
+    input.addEventListener('input', () => {
+      if (input.value.trim()) {
+        select.value = ''; // Clear selection when typing manually
+      }
+      
+      // Show suggestions if available
+      this._showDestinationSuggestions(input, availableDestinations);
+    });
+    
+    // Set initial focus
+    setTimeout(() => {
+      if (currentValue && availableDestinations.includes(currentValue)) {
+        select.focus();
+      } else {
+        input.focus();
+        input.select();
+      }
+    }, 0);
+  }
+
+  _showDestinationSuggestions(input, availableDestinations) {
+    const value = input.value.trim();
+    if (!value || value.length < 2) return;
+    
+    const suggestions = this.environmentService.getDestinationSuggestions(value, 3);
+    if (suggestions.length > 0) {
+      // Could implement a dropdown suggestion list here
+      console.log('Suggestions for "' + value + '":', suggestions);
+    }
   }
 
   renderBindingForm(container, element, config, translate, onComplete) {
@@ -79,7 +192,7 @@ class FormHandlers {
           <button type="button" class="btn-cancel">${translate("OK")}</button>
         </div>
       `;
-      container.querySelector(".btn-cancel").addEventListener("click", () => onComplete(null));
+      container.querySelector(".btn-cancel").addEventListener("click", onComplete);
       return;
     }
 
@@ -110,12 +223,14 @@ class FormHandlers {
     }
 
     const onSave = () => {
-      onComplete(select.value); // Pass the selected participant ID back
+      this.extensionService.setExtension(element, "space:Binding", select.value);
+      onComplete(); // Close after save
     };
 
-    this.attachFormHandlers(container, onSave, () => onComplete(null));
+    this.attachFormHandlers(container, onSave, onComplete);
   }
 
+  // ... (rest of the existing methods remain the same)
   attachFormHandlers(container, onSave, onCancel, focusElement = null) {
     container.querySelector(".btn-save")?.addEventListener("click", onSave);
     container.querySelector(".btn-cancel")?.addEventListener("click", onCancel);
@@ -196,7 +311,7 @@ class FormHandlers {
 function MovementContextPadProvider(
   contextPad, modeling, bpmnFactory, elementFactory, overlays, 
   eventBus, translate, elementRegistry, 
-  extensionService, validationService, taskTypeService
+  extensionService, validationService, taskTypeService, environmentService
 ) {
   this._contextPad = contextPad;
   this._translate = translate;
@@ -207,7 +322,8 @@ function MovementContextPadProvider(
   this.extensionService = extensionService;
   this.validationService = validationService;
   this.taskTypeService = taskTypeService;
-  this.formHandlers = new FormHandlers(extensionService, elementRegistry, modeling, elementFactory);
+  this.environmentService = environmentService; // Add environment service
+  this.formHandlers = new FormHandlers(extensionService, elementRegistry, modeling, elementFactory, environmentService);
 
   contextPad.registerProvider(this);
   eventBus.on("shape.remove", ({ element }) => this._closeMenu(element));
@@ -216,9 +332,10 @@ function MovementContextPadProvider(
 MovementContextPadProvider.$inject = [
   "contextPad", "modeling", "bpmnFactory", "elementFactory", 
   "overlays", "eventBus", "translate", "elementRegistry",
-  "extensionService", "validationService", "taskTypeService"
+  "extensionService", "validationService", "taskTypeService", "environmentService"
 ];
 
+// ... (rest of the existing MovementContextPadProvider methods remain the same)
 MovementContextPadProvider.prototype._openMenu = function(element) {
   this._contextPad.close();
   this._closeMenu(element);
@@ -291,11 +408,7 @@ MovementContextPadProvider.prototype._createEnhancedMenuMarkup = function(elemen
     // Build title attribute
     let titleAttr = '';
     if (isCurrentType) {
-      if (config.key === "movement") {
-        titleAttr = 'title="Click to edit destination"';
-      } else {
-        titleAttr = 'title="Current type"';
-      }
+      titleAttr = 'title="Current type - click to edit"';
     } else if (hasWarnings && warningTooltip) {
       titleAttr = `title="${warningTooltip}"`;
     }
@@ -338,6 +451,8 @@ MovementContextPadProvider.prototype._createEnhancedMenuMarkup = function(elemen
   `;
 };
 
+// ... (all other existing methods remain the same)
+
 MovementContextPadProvider.prototype._prevalidateTypeChange = function(element, newTypeKey, translate) {
   const currentType = this.extensionService.getCurrentType(element);
   
@@ -361,14 +476,15 @@ MovementContextPadProvider.prototype._handleTypeSelection = function(element, ty
 
   const currentType = this.extensionService.getCurrentType(element);
   
-  // If it's the current type and it's movement, allow editing the destination
   if (currentType === typeKey) {
+    // Same type selected - for movement, go directly to destination edit
     if (typeKey === "movement") {
-      // Show destination edit form for current movement task
-      this._showEditDestinationForm(element, config, container, translate);
+      this.formHandlers.renderDestinationForm(container, element, config, translate, () => {
+        this._closeMenu(element);
+      });
       return;
     }
-    // For other current types, just close menu
+    // For other types, just close menu
     this._closeMenu(element);
     return;
   }
@@ -381,239 +497,36 @@ MovementContextPadProvider.prototype._handleTypeSelection = function(element, ty
     this._showWarning(container, validation.warning);
   }
 
-  // Show the confirmation/configuration form
-  this._showTypeChangeForm(element, typeKey, config, container, translate);
+  // Apply the type change immediately
+  this._executeTypeChange(element, typeKey, config, container, translate);
 };
 
-MovementContextPadProvider.prototype._showTypeChangeForm = function(element, typeKey, config, container, translate) {
-  const currentType = this.extensionService.getCurrentType(element);
-  
-  // Create confirmation markup
-  const confirmationMarkup = `
-    <div class="menu-header">
-      <div class="title">${translate("Confirm Type Change")}</div>
-      <button type="button" class="btn-close" title="${translate("Close menu")}" aria-label="${translate("Close")}">
-        <span class="close-icon">×</span>
-      </button>
-    </div>
-    <div class="change-summary">
-      <span class="from-type">${currentType ? translate(getTaskConfig(currentType)?.typeValue || currentType) : translate("No type")}</span>
-      <span class="arrow">→</span>
-      <span class="to-type">${translate(config.typeValue)}</span>
-    </div>
-  `;
-
-  // Handle different form types
-  if (config.formType === "destination") {
-    // Movement type - show destination input
-    this._showDestinationChangeForm(element, typeKey, config, container, translate, confirmationMarkup);
-  } else if (config.formType === "binding") {
-    // Binding type - show participant selection
-    this._showBindingChangeForm(element, typeKey, config, container, translate, confirmationMarkup);
-  } else {
-    // Simple types (unbinding) - just show confirmation
-    this._showSimpleChangeForm(element, typeKey, config, container, translate, confirmationMarkup);
-  }
-};
-
-MovementContextPadProvider.prototype._showEditDestinationForm = function(element, config, container, translate) {
-  const currentDestination = this.extensionService.getDestination(element);
-  
-  container.innerHTML = `
-    <div class="menu-header">
-      <div class="title">${translate("Edit Movement Destination")}</div>
-      <button type="button" class="btn-close" title="${translate("Close menu")}" aria-label="${translate("Close")}">
-        <span class="close-icon">×</span>
-      </button>
-    </div>
-    <div class="row">
-      <label style="display:block;margin-bottom:4px;font-weight:500;font-size:12px;">
-        ${translate("Destination")}:
-      </label>
-      <input type="text" class="form-input" placeholder="${config.defaultDestination}" value="${currentDestination || ''}" />
-    </div>
-    <div class="row">
-      <small class="help-text">${translate("Specify where this movement should go")}</small>
-    </div>
-    <div class="actions">
-      <button type="button" class="btn-save">${translate("Save")}</button>
-      <button type="button" class="btn-cancel">${translate("Cancel")}</button>
-    </div>
-  `;
-
-  const input = container.querySelector(".form-input");
-  
-  // Auto-select text for easy editing
-  setTimeout(() => {
-    input.focus();
-    input.select();
-  }, 0);
-
-  const onSave = () => {
-    const destination = input.value.trim() || config.defaultDestination;
-    this.extensionService.setExtension(element, "space:Destination", destination);
-    this.formHandlers.createOrUpdateDestLabel(element, destination);
-    this._closeMenu(element);
-  };
-
-  const onCancel = () => {
-    this._closeMenu(element);
-  };
-
-  this._attachFormHandlers(container, onSave, onCancel, input);
-};
-
-MovementContextPadProvider.prototype._showDestinationChangeForm = function(element, typeKey, config, container, translate, headerMarkup) {
-  const currentDestination = this.extensionService.getDestination(element);
-  
-  container.innerHTML = `
-    ${headerMarkup}
-    <div class="row">
-      <label style="display:block;margin-bottom:4px;font-weight:500;font-size:12px;">
-        ${translate("Destination")}:
-      </label>
-      <input type="text" class="form-input" placeholder="${config.defaultDestination}" value="${currentDestination || ''}" />
-    </div>
-    <div class="row">
-      <small class="help-text">${translate("Specify where this movement should go")}</small>
-    </div>
-    <div class="actions">
-      <button type="button" class="btn-save">${translate("Save Changes")}</button>
-      <button type="button" class="btn-cancel">${translate("Cancel")}</button>
-    </div>
-  `;
-
-  const input = container.querySelector(".form-input");
-  
-  // Auto-select text for easy editing
-  setTimeout(() => {
-    input.focus();
-    input.select();
-  }, 0);
-
-  const onSave = () => {
-    const destination = input.value.trim() || config.defaultDestination;
-    this._executeTypeChange(element, typeKey, config, { destination });
-    this._closeMenu(element);
-  };
-
-  const onCancel = () => {
-    this._closeMenu(element);
-  };
-
-  this._attachFormHandlers(container, onSave, onCancel, input);
-};
-
-MovementContextPadProvider.prototype._showBindingChangeForm = function(element, typeKey, config, container, translate, headerMarkup) {
-  const participants = this.formHandlers.getAvailableParticipants(element);
-  
-  if (!participants.length) {
-    container.innerHTML = `
-      ${headerMarkup}
-      <div class="row" style="color:#555; margin-bottom:12px;">
-        ${translate("No other participants available. Add another Participant (pool) to bind.")}
-      </div>
-      <div class="actions">
-        <button type="button" class="btn-cancel">${translate("OK")}</button>
-      </div>
-    `;
-    container.querySelector(".btn-cancel").addEventListener("click", () => this._closeMenu(element));
-    return;
-  }
-
-  const currentBinding = this.extensionService.getBinding(element);
-
-  container.innerHTML = `
-    ${headerMarkup}
-    <div class="row">
-      <label style="display:block;margin-bottom:4px;font-weight:500;font-size:12px;">
-        ${translate("Bind to participant")}:
-      </label>
-      <select class="form-select" style="width:100%;padding:8px;border:1px solid #cfcfcf;border-radius:6px;outline:none;">
-        ${participants.map(p => `<option value="${p.id}">${this.formHandlers.escapeHtml(p.name)}</option>`).join("")}
-      </select>
-    </div>
-    <div class="actions">
-      <button type="button" class="btn-save">${translate("Save Changes")}</button>
-      <button type="button" class="btn-cancel">${translate("Cancel")}</button>
-    </div>
-  `;
-
-  const select = container.querySelector(".form-select");
-  if (currentBinding) {
-    const option = Array.from(select.options).find(o => o.value === currentBinding);
-    if (option) select.value = currentBinding;
-  }
-
-  const onSave = () => {
-    this._executeTypeChange(element, typeKey, config, { binding: select.value });
-    this._closeMenu(element);
-  };
-
-  const onCancel = () => {
-    this._closeMenu(element);
-  };
-
-  this._attachFormHandlers(container, onSave, onCancel);
-};
-
-MovementContextPadProvider.prototype._showSimpleChangeForm = function(element, typeKey, config, container, translate, headerMarkup) {
-  container.innerHTML = `
-    ${headerMarkup}
-    <div class="row" style="margin-bottom:12px;">
-      ${translate("Are you sure you want to change the task type?")}
-    </div>
-    <div class="actions">
-      <button type="button" class="btn-save">${translate("Confirm Change")}</button>
-      <button type="button" class="btn-cancel">${translate("Cancel")}</button>
-    </div>
-  `;
-
-  const onSave = () => {
-    this._executeTypeChange(element, typeKey, config, {});
-    this._closeMenu(element);
-  };
-
-  const onCancel = () => {
-    this._closeMenu(element);
-  };
-
-  this._attachFormHandlers(container, onSave, onCancel);
-};
-
-MovementContextPadProvider.prototype._executeTypeChange = function(element, typeKey, config, formData) {
+MovementContextPadProvider.prototype._executeTypeChange = function(element, typeKey, config, container, translate) {
   try {
     // Use TaskTypeService for the change
     this.taskTypeService.setTaskType(element, typeKey);
 
-    // Set additional properties based on form data
-    if (formData.destination) {
-      this.extensionService.setExtension(element, "space:Destination", formData.destination);
-      this.formHandlers.createOrUpdateDestLabel(element, formData.destination);
-    }
+    // Clear any previous warnings
+    this._clearWarning(container);
 
-    if (formData.binding) {
-      this.extensionService.setExtension(element, "space:Binding", formData.binding);
+    // Handle different form types immediately
+    if (config.formType === "destination") {
+      // For movement - show destination form immediately
+      this.formHandlers.renderDestinationForm(container, element, config, translate, () => {
+        this._closeMenu(element);
+      });
+    } else if (config.formType === "binding") {
+      // For binding - show participant selection immediately  
+      this.formHandlers.renderBindingForm(container, element, config, translate, () => {
+        this._closeMenu(element);
+      });
+    } else {
+      // For unbinding or other types with no form - close immediately
+      this._closeMenu(element);
     }
     
   } catch (error) {
-    console.error("Failed to change task type:", error);
-    // Could show error in UI if needed
-  }
-};
-
-MovementContextPadProvider.prototype._attachFormHandlers = function(container, onSave, onCancel, focusElement = null) {
-  container.querySelector(".btn-save")?.addEventListener("click", onSave);
-  container.querySelector(".btn-cancel")?.addEventListener("click", onCancel);
-  container.querySelector(".btn-close")?.addEventListener("click", onCancel);
-  
-  container.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") onSave();
-    if (e.key === "Escape") onCancel();
-  });
-
-  if (focusElement) {
-    setTimeout(() => focusElement.focus(), 0);
+    this._showValidationError(container, translate("Failed to change task type: " + error.message));
   }
 };
 

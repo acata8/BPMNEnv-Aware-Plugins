@@ -542,3 +542,423 @@ span.menu-task:first-letter {
 .movement-type-menu .form-select option {
   z-index: 99990;
 }
+
+
+/* ============================================================================
+   File Input Provider Styles - Add these to your style.css
+   ============================================================================ */
+
+/* Global file input button */
+.env-file-input-button .btn-file-input {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #333;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.env-file-input-button .btn-file-input:hover {
+  background: #f8f9fa;
+  border-color: #4caf50;
+  color: #2e7d32;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+.env-file-input-button .file-icon {
+  font-size: 16px;
+}
+
+.env-file-input-button .file-text {
+  font-weight: 500;
+}
+
+/* File input dialog */
+.env-file-input-dialog {
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 12px;
+  padding: 0;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  min-width: 400px;
+  max-width: 500px;
+  font-family: system-ui, -apple-system, sans-serif;
+  z-index: 99999 !important;
+  position: relative;
+}
+
+/* Dialog header */
+.env-file-input-dialog .file-dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #eee;
+  background: #f8f9fa;
+  border-radius: 12px 12px 0 0;
+}
+
+.env-file-input-dialog .file-dialog-header .title {
+  font-weight: 600;
+  font-size: 16px;
+  color: #333;
+  margin: 0;
+  flex: 1;
+}
+
+.env-file-input-dialog .btn-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  margin: -6px;
+  border-radius: 6px;
+  color: #666;
+  font-size: 18px;
+  line-height: 1;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+}
+
+.env-file-input-dialog .btn-close:hover {
+  background: #e9ecef;
+  color: #333;
+}
+
+.env-file-input-dialog .close-icon {
+  font-size: 20px;
+  font-weight: bold;
+  user-select: none;
+}
+
+/* Current file info */
+.env-file-input-dialog .current-file-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: #e8f5e8;
+  border-bottom: 1px solid #c8e6c9;
+  color: #2e7d32;
+  font-size: 14px;
+}
+
+.env-file-input-dialog .current-file-name {
+  flex: 1;
+  font-weight: 500;
+}
+
+.env-file-input-dialog .btn-clear-file {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  color: #666;
+  font-size: 12px;
+  transition: all 0.2s ease;
+}
+
+.env-file-input-dialog .btn-clear-file:hover {
+  background: rgba(0,0,0,0.1);
+  color: #333;
+}
+
+/* File input area */
+.env-file-input-dialog .file-input-area {
+  padding: 20px;
+}
+
+.env-file-input-dialog .file-drop-zone {
+  border: 2px dashed #ddd;
+  border-radius: 8px;
+  padding: 40px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: #fafafa;
+}
+
+.env-file-input-dialog .file-drop-zone:hover {
+  border-color: #4caf50;
+  background: #f8fff8;
+}
+
+.env-file-input-dialog .file-drop-zone.drag-over {
+  border-color: #4caf50;
+  background: #e8f5e8;
+  transform: scale(1.02);
+}
+
+.env-file-input-dialog .drop-zone-content {
+  pointer-events: none;
+}
+
+.env-file-input-dialog .upload-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.7;
+}
+
+.env-file-input-dialog .upload-text {
+  color: #333;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.env-file-input-dialog .upload-subtext {
+  color: #666;
+  font-size: 12px;
+}
+
+/* Format info */
+.env-file-input-dialog .file-format-info {
+  padding: 0 20px 20px;
+  border-top: 1px solid #eee;
+  margin-top: 0;
+  background: #f8f9fa;
+}
+
+.env-file-input-dialog .info-title {
+  font-weight: 600;
+  font-size: 13px;
+  color: #555;
+  margin: 16px 0 8px 0;
+}
+
+.env-file-input-dialog .format-example {
+  background: #f5f5f5;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  padding: 12px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+
+.env-file-input-dialog .format-example code {
+  font-size: 11px;
+  color: #333;
+  line-height: 1.4;
+  white-space: pre;
+  display: block;
+}
+
+/* Dialog actions */
+.env-file-input-dialog .dialog-actions {
+  padding: 16px 20px;
+  border-top: 1px solid #eee;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  background: #f8f9fa;
+  border-radius: 0 0 12px 12px;
+}
+
+.env-file-input-dialog .btn-cancel {
+  background: white;
+  color: #666;
+  border: 1px solid #ddd;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.env-file-input-dialog .btn-cancel:hover {
+  background: #f5f5f5;
+  border-color: #bbb;
+  color: #333;
+}
+
+/* File status */
+.env-file-input-dialog .file-status {
+  padding: 12px 20px;
+  border-top: 1px solid #eee;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.env-file-input-dialog .file-status-success {
+  background: #e8f5e8;
+  color: #2e7d32;
+}
+
+.env-file-input-dialog .file-status-error {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.env-file-input-dialog .file-status-loading {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.env-file-input-dialog .status-icon {
+  font-size: 16px;
+}
+
+/* Focus styles */
+.env-file-input-dialog .file-drop-zone:focus {
+  outline: 2px solid #4caf50;
+  outline-offset: 2px;
+}
+
+.env-file-input-dialog .btn-close:focus {
+  outline: 2px solid #2196f3;
+  outline-offset: 2px;
+}
+
+/* Overlay specific */
+.djs-overlay[data-overlay-id*="env-file-dialog"] {
+  z-index: 99998 !important;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 600px) {
+  .env-file-input-dialog {
+    min-width: 320px;
+    max-width: 90vw;
+  }
+  
+  .env-file-input-dialog .file-input-area {
+    padding: 16px;
+  }
+  
+  .env-file-input-dialog .file-drop-zone {
+    padding: 30px 16px;
+  }
+  
+  .env-file-input-dialog .upload-icon {
+    font-size: 36px;
+    margin-bottom: 12px;
+  }
+}
+
+/* Animation for successful load */
+@keyframes successPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+.env-file-input-dialog .file-status-success {
+  animation: successPulse 0.6s ease-in-out;
+}
+/* ============================================================================
+   Environment Configuration Integration Styles
+   ============================================================================ */
+
+/* Environment configuration info in forms */
+.movement-type-menu .env-config-info {
+  margin-bottom: 12px;
+  padding: 10px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.movement-type-menu .env-config-info.env-config-missing {
+  background: #fff3e0;
+  border: 1px solid #ffb74d;
+  color: #ef6c00;
+}
+
+.movement-type-menu .env-config-info:not(.env-config-missing) {
+  background: #e8f5e8;
+  border: 1px solid #c8e6c9;
+  color: #2e7d32;
+}
+
+.movement-type-menu .config-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+
+.movement-type-menu .config-icon {
+  font-size: 14px;
+}
+
+.movement-type-menu .config-text {
+  flex: 1;
+}
+
+.movement-type-menu .config-summary {
+  font-size: 11px;
+  opacity: 0.8;
+  font-style: italic;
+}
+
+.movement-type-menu .config-action {
+  margin-top: 4px;
+}
+
+.movement-type-menu .config-action small {
+  font-size: 11px;
+  opacity: 0.9;
+}
+
+/* Form labels and enhanced inputs */
+.movement-type-menu .form-label {
+  display: block;
+  font-weight: 500;
+  font-size: 12px;
+  color: #555;
+  margin-bottom: 4px;
+}
+
+.movement-type-menu .destination-select {
+  margin-bottom: 8px;
+}
+
+.movement-type-menu .destination-select:focus {
+  border-color: #4caf50;
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+}
+
+/* Enhanced form rows */
+.movement-type-menu .row {
+  margin-bottom: 8px;
+}
+
+.movement-type-menu .row:last-of-type {
+  margin-bottom: 12px;
+}
+
+/* Destination suggestions (for future implementation) */
+.movement-type-menu .destination-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #ddd;
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  z-index: 1000;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+.movement-type-menu .suggestion-item {
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
