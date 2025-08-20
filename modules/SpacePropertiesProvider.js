@@ -725,12 +725,6 @@ SpacePropertiesProvider.prototype.updateDestinationAttributes = function(section
   }
 };
 
-// Only showing the changed parts - import and specific method updates
-
-import { getTaskConfig, getAllTaskTypes, TASK_TYPE_KEYS } from './TaskTypes';
-
-// ... other code remains the same ...
-
 SpacePropertiesProvider.prototype.updateFieldVisibility = function(section, selectedType) {
   const destinationEntry = section.querySelector('.space-destination-entry');
   const bindingEntry = section.querySelector('.space-binding-entry');
