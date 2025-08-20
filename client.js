@@ -14,7 +14,7 @@ import ServicesModule from './services/ServicesModule';
 
 registerBpmnJSModdleExtension(spaceModdle);
 registerBpmnJSPlugin(ServicesModule); 
-registerBpmnJSPlugin(TypedPaletteProvider);
+// registerBpmnJSPlugin(TypedPaletteProvider);
 registerBpmnJSPlugin(TypedOverlay);
 registerBpmnJSPlugin(MovementContextPadProvider);
 registerBpmnJSPlugin(SpacePropertiesProvider); 

@@ -4,32 +4,32 @@ function SpacePropertiesProvider(
   eventBus, 
   translate,
   extensionService,
-  taskTypeService
+  taskTypeService,
+  environmentService
 ) {
   this._eventBus = eventBus;
   this._translate = translate;
   this._extensionService = extensionService;
   this._taskTypeService = taskTypeService;
+  this._environmentService = environmentService;
 
-  console.log('SpacePropertiesProvider initialized');
+  console.info('SpacePropertiesProvider initialized');
 
   eventBus.on('selection.changed', (event) => {
     if (event.newSelection && event.newSelection.length === 1) {
       const element = event.newSelection[0];
       
       if (element.type === 'bpmn:Task') {
-        console.log('Task selected:', element.id);
         setTimeout(() => this.createStandaloneSpaceSection(element), 200);
       } else {
-        // Not a task - hide space properties section
-        console.log('Non-task selected, hiding space properties');
-        this.hideSpaceSection();
+        // Not a task - show environment configuration section
+        setTimeout(() => this.showEnvironmentSection(), 200);
       }
-    } else {
-      // No selection or multiple selection - hide space properties section
-      console.log('No task selection, hiding space properties');
-      this.hideSpaceSection();
+    } else if (event.newSelection && event.newSelection.length === 0) {
+      // No selection - show environment configuration section
+      setTimeout(() => this.showEnvironmentSection(), 200);
     }
+    // Do nothing for multiple selections
   });
 
   // Listen for model changes to refresh the UI
@@ -41,29 +41,370 @@ function SpacePropertiesProvider(
       }
     }
   });
+
+  // Listen for environment changes
+  eventBus.on('environment.ready', () => {
+    this.refreshEnvironmentSection();
+  });
+
+  eventBus.on('environment.cleared', () => {
+    this.refreshEnvironmentSection();
+  });
+
+  // Listen for manual file load results
+  eventBus.on('environment.manual.loaded', (event) => {
+    this.handleManualLoadResult(event);
+  });
 }
 
 SpacePropertiesProvider.$inject = [
   'eventBus',
   'translate',
   'extensionService',
-  'taskTypeService'
+  'taskTypeService',
+  'environmentService'
 ];
 
+/**
+ * Show environment configuration section when no task is selected
+ */
+SpacePropertiesProvider.prototype.showEnvironmentSection = function() {
+  const propertiesPanel = document.querySelector('.bio-properties-panel-scroll-container');
+  if (!propertiesPanel) {
+    console.error('Properties panel scroll container not found');
+    return;
+  }
+
+  // Check if environment section already exists
+  const existingEnvSection = propertiesPanel.querySelector('.space-properties-section[data-group-id="group-environment-config"]');
+  if (existingEnvSection) {
+    return;
+  }
+
+  // Remove any other space sections (task-related)
+  const existingSpaceSection = propertiesPanel.querySelector('.space-properties-section');
+  if (existingSpaceSection) {
+    existingSpaceSection.remove();
+  }
+
+  // Create the environment configuration section
+  const envSection = this.createEnvironmentSection();
+  
+  // Insert at the beginning
+  propertiesPanel.insertBefore(envSection, propertiesPanel.firstChild);
+};
+
+/**
+ * Create environment configuration section
+ */
+SpacePropertiesProvider.prototype.createEnvironmentSection = function() {
+  const section = document.createElement('div');
+  section.className = 'bio-properties-panel-group space-properties-section';
+  section.setAttribute('data-group-id', 'group-environment-config');
+
+  const translate = this._translate;
+  const hasConfig = this._environmentService.hasConfiguration();
+  const configSummary = hasConfig ? this._environmentService.getConfigSummary() : null;
+  
+  // Section should be expanded if there's configuration
+  const isExpanded = hasConfig;
+
+  section.innerHTML = `
+    <!-- Section Header -->
+    <div class="bio-properties-panel-group-header ${isExpanded ? 'open' : ''} ${hasConfig ? '' : 'empty'}">
+      <div title="Environment Configuration" data-title="Environment Configuration" class="bio-properties-panel-group-header-title">
+          Environment Configuration
+      </div>
+      <div class="bio-properties-panel-group-header-buttons">
+        ${hasConfig ? '<div title="Environment loaded" class="bio-properties-panel-dot"></div>' : ''}
+        <button type="button" 
+                title="Toggle section" 
+                class="bio-properties-panel-group-header-button bio-properties-panel-arrow">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" class="${isExpanded ? 'bio-properties-panel-arrow-down' : 'bio-properties-panel-arrow-right'}">
+            <path fill-rule="evenodd" d="m11.657 8-4.95 4.95a1 1 0 0 1-1.414-1.414L8.828 8 5.293 4.464A1 1 0 1 1 6.707 3.05L11.657 8Z"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Section Entries -->
+    <div class="bio-properties-panel-group-entries ${isExpanded ? 'open' : ''}" style="${isExpanded ? '' : 'display: none;'}">
+      
+      <!-- File Upload Entry -->
+      ${hasConfig == false ?
+      `<div data-entry-id="env-file-upload" class="bio-properties-panel-entry">
+        <div class="bio-properties-panel-textfield">
+          <label class="bio-properties-panel-label">${translate('Environment File')}</label>
+          <div class="env-file-input-container">
+            <button type="button" class="env-file-load-btn bio-properties-panel-input" 
+                    style="text-align: left; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+              <span class="file-text">${translate('Load environment.json')}</span>
+            </button>
+            <input type="file" 
+                   accept=".json" 
+                   class="env-file-input" 
+                   style="display: none;" />
+          </div>
+          <small class="bio-properties-panel-description">
+            ${hasConfig 
+              ? translate('Replace the current environment with a different file')
+              : translate('Load environment.json to configure available places and destinations')
+            }
+          </small>
+        </div>
+      </div>`
+      : `` }
+
+      ${hasConfig ? this.renderConfigurationDetails(configSummary) : ''}
+       
+      <!-- Clear Configuration Button (only if config loaded) -->
+      ${hasConfig ? `
+      <div data-entry-id="env-clear-config" class="bio-properties-panel-entry">
+        <div class="bio-properties-panel-textfield">
+          <button type="button" class="env-clear-config-btn bio-properties-panel-input" 
+                  style="text-align: center; cursor: pointer; color: #d32f2f; border-color: #d32f2f;">
+            ${translate('Clear Configuration')}
+          </button>
+        </div>
+      </div>
+      ` : ''}
+      
+    </div>
+  `;
+
+  // Attach event listeners
+  this.attachEnvironmentEventListeners(section);
+
+  return section;
+};
+
+/**
+ * Render configuration details section
+ */
+SpacePropertiesProvider.prototype.renderConfigurationDetails = function(configSummary) {
+  const translate = this._translate;
+  
+  return `
+    <!-- Configuration Details Entry -->
+    <div data-entry-id="env-config-details" class="bio-properties-panel-entry">
+      <div class="bio-properties-panel-textfield">
+        <label class="bio-properties-panel-label">${translate('Configuration Summary')}</label>
+        <div class="env-config-details">
+          <div class="config-metric">
+            <span class="metric-label">${translate('Places')}:</span>
+            <span class="metric-value">${configSummary.summary.places}</span>
+          </div>
+          <div class="config-metric">
+            <span class="metric-label">${translate('Logical Places')}:</span>
+            <span class="metric-value">${configSummary.summary.logicalPlaces}</span>
+          </div>
+          <div class="config-metric">
+            <span class="metric-label">${translate('Views')}:</span>
+            <span class="metric-value">${configSummary.summary.views}</span>
+          </div>
+          ${configSummary.zones.length > 0 ? `
+          <div class="config-metric">
+            <span class="metric-label">${translate('Zones')}:</span>
+            <span class="metric-value">${configSummary.zones.join(', ')}</span>
+          </div>
+          ` : ''}
+          ${configSummary.purposes.length > 0 ? `
+          <div class="config-metric">
+            <span class="metric-label">${translate('Purposes')}:</span>
+            <span class="metric-value">${configSummary.purposes.join(', ')}</span>
+          </div>
+          ` : ''}
+        </div>
+      </div>
+    </div>
+  `;
+};
+
+/**
+ * Attach event listeners to environment section
+ */
+SpacePropertiesProvider.prototype.attachEnvironmentEventListeners = function(section) {
+  // Toggle section expand/collapse
+  const toggleButton = section.querySelector('.bio-properties-panel-group-header-button');
+  const header = section.querySelector('.bio-properties-panel-group-header');
+  const entries = section.querySelector('.bio-properties-panel-group-entries');
+
+  if (toggleButton && header && entries) {
+    toggleButton.addEventListener('click', () => {
+      const isOpen = header.classList.contains('open');
+      
+      if (isOpen) {
+        // Close section
+        header.classList.remove('open');
+        entries.classList.remove('open');
+        entries.style.display = 'none';
+        
+        const arrow = toggleButton.querySelector('svg');
+        if (arrow) {
+          arrow.classList.remove('bio-properties-panel-arrow-down');
+          arrow.classList.add('bio-properties-panel-arrow-right');
+        }
+      } else {
+        // Open section
+        header.classList.add('open');
+        entries.classList.add('open');
+        entries.style.display = 'block';
+        
+        const arrow = toggleButton.querySelector('svg');
+        if (arrow) {
+          arrow.classList.remove('bio-properties-panel-arrow-right');
+          arrow.classList.add('bio-properties-panel-arrow-down');
+        }
+      }
+    });
+  }
+
+  // File input handling
+  const fileButton = section.querySelector('.env-file-load-btn');
+  const fileInput = section.querySelector('.env-file-input');
+
+  if (fileButton && fileInput) {
+    fileButton.addEventListener('click', () => {
+      fileInput.click();
+    });
+
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        this.handleFileLoad(file, section);
+      }
+    });
+  }
+
+  // Clear configuration button
+  const clearButton = section.querySelector('.env-clear-config-btn');
+  if (clearButton) {
+    clearButton.addEventListener('click', () => {
+      this.handleClearConfiguration(section);
+    });
+  }
+};
+
+/**
+ * Handle file loading (manual upload)
+ */
+SpacePropertiesProvider.prototype.handleFileLoad = function(file, section) {
+  // Validate file type
+  if (!file.name.toLowerCase().endsWith('.json')) {
+    this.showFileError(section, this._translate('Please select a JSON file'));
+    return;
+  }
+
+  // Show loading state
+  this.showFileLoading(section, file.name);
+
+  // Use environment service to handle the file
+  this._environmentService.handleManualFileLoad(file);
+};
+
+/**
+ * Handle clear configuration
+ */
+SpacePropertiesProvider.prototype.handleClearConfiguration = function(section) {  
+  // Confirm with user
+  if (confirm(this._translate('Are you sure you want to clear the environment configuration?'))) {
+    this._environmentService.clearConfiguration();
+    this.refreshEnvironmentSection();
+  }
+};
+
+/**
+ * Handle manual load result
+ */
+SpacePropertiesProvider.prototype.handleManualLoadResult = function(event) {
+  const section = document.querySelector('.space-properties-section[data-group-id="group-environment-config"]');
+  if (!section) return;
+
+  if (event.success) {
+      this.refreshEnvironmentSection();
+  } else {
+    this.showFileError(section, event.error || this._translate('Unknown error occurred'));
+  }
+};
+
+/**
+ * Show file loading state
+ */
+SpacePropertiesProvider.prototype.showFileLoading = function(section, fileName) {
+  const button = section.querySelector('.env-file-load-btn');
+  if (button) {
+    button.innerHTML = `
+      <span class="file-text">${this._translate('Loading')} ${fileName}...</span>
+    `;
+    button.disabled = true;
+    button.style.opacity = '0.7';
+  }
+};
+
+/**
+ * Show file success state
+ */
+SpacePropertiesProvider.prototype.showFileSuccess = function(section, fileName) {
+  const button = section.querySelector('.env-file-load-btn');
+  if (button) {
+    button.innerHTML = `
+      <span class="file-text">${this._translate('Loaded')} ${fileName}</span>
+    `;
+    setTimeout(() => {
+      button.disabled = false;
+      button.style.opacity = '1';
+    }, 1500);
+  }
+};
+
+/**
+ * Show file error state
+ */
+SpacePropertiesProvider.prototype.showFileError = function(section, message) {
+  const button = section.querySelector('.env-file-load-btn');
+  if (button) {
+    button.innerHTML = `
+      <span class="file-text">${message}</span>
+    `;
+    button.style.color = '#d32f2f';
+    
+    setTimeout(() => {
+      const hasConfig = this._environmentService.hasConfiguration();
+      button.innerHTML = `
+        <span class="file-text">${hasConfig ? this._translate('Load Different File') : this._translate('Load environment.json')}</span>
+      `;
+      button.style.color = '';
+      button.disabled = false;
+      button.style.opacity = '1';
+    }, 3000);
+  }
+};
+
+/**
+ * Refresh environment section
+ */
+SpacePropertiesProvider.prototype.refreshEnvironmentSection = function() {  
+  // Check if we're currently showing an environment section
+  const existingSection = document.querySelector('.space-properties-section[data-group-id="group-environment-config"]');
+  if (existingSection) {
+    // Force refresh by removing and recreating
+    existingSection.remove();
+    this.showEnvironmentSection();
+  }
+};
+
+// Keep all existing task-related methods unchanged from the original SpacePropertiesProvider
 SpacePropertiesProvider.prototype.hideSpaceSection = function() {
   const existingSection = document.querySelector('.space-properties-section');
   if (existingSection) {
-    console.log('Removing space properties section');
     existingSection.remove();
   }
 };
 
 SpacePropertiesProvider.prototype.createStandaloneSpaceSection = function(element) {
-  console.log('Creating standalone space properties section for:', element.id);
   
   const propertiesPanel = document.querySelector('.bio-properties-panel-scroll-container');
   if (!propertiesPanel) {
-    console.error('Properties panel scroll container not found');
     return;
   }
 
@@ -84,8 +425,6 @@ SpacePropertiesProvider.prototype.createStandaloneSpaceSection = function(elemen
     // Fallback: add at the beginning
     propertiesPanel.insertBefore(spaceSection, propertiesPanel.firstChild);
   }
-
-  console.log('✅ Standalone space section created and inserted');
 };
 
 SpacePropertiesProvider.prototype.createSpaceSection = function(element) {
@@ -101,7 +440,6 @@ SpacePropertiesProvider.prototype.createSpaceSection = function(element) {
   const hasData = !!currentType;
 
   section.innerHTML = `
-    <!-- Section Header (matches native style) -->
     <div class="bio-properties-panel-group-header ${isExpanded ? 'open' : ''} ${hasData ? '' : 'empty'}">
       <div title="Space Properties" 
            data-title="Space Properties" 
@@ -181,8 +519,6 @@ SpacePropertiesProvider.prototype.createSpaceSection = function(element) {
 };
 
 SpacePropertiesProvider.prototype.attachSectionEventListeners = function(section, element) {
-  console.log('Attaching event listeners to standalone space section');
-
   // Toggle section expand/collapse
   const toggleButton = section.querySelector('.bio-properties-panel-group-header-button');
   const header = section.querySelector('.bio-properties-panel-group-header');
@@ -216,7 +552,6 @@ SpacePropertiesProvider.prototype.attachSectionEventListeners = function(section
         }
       }
       
-      console.log('Section toggled:', isOpen ? 'closed' : 'opened');
     });
   }
 
@@ -228,17 +563,13 @@ SpacePropertiesProvider.prototype.attachSectionEventListeners = function(section
   // Type selection - immediate save to XML
   if (typeSelect) {
     typeSelect.addEventListener('change', (e) => {
-      console.log('🔄 Type changed to:', e.target.value);
-      
       try {
         const newType = e.target.value;
         
         if (newType) {
           this._taskTypeService.setTaskType(element, newType);
-          console.log('✅ Type saved to XML:', newType);
         } else {
           this._taskTypeService.clearTaskType(element);
-          console.log('✅ Type cleared from XML');
         }
 
         // Update UI immediately
@@ -246,7 +577,7 @@ SpacePropertiesProvider.prototype.attachSectionEventListeners = function(section
         this.updateSectionIndicators(section, element);
 
       } catch (error) {
-        console.error('❌ Error changing type:', error);
+        console.error('Error changing type:', error);
       }
     });
   }
@@ -254,20 +585,17 @@ SpacePropertiesProvider.prototype.attachSectionEventListeners = function(section
   // Destination input - save on change
   if (destinationInput) {
     ['input', 'blur', 'change'].forEach(eventType => {
-      destinationInput.addEventListener(eventType, (e) => {
-        console.log(`🔄 Destination ${eventType}:`, e.target.value);
-        
+      destinationInput.addEventListener(eventType, (e) => {        
         try {
           const value = e.target.value.trim();
           if (value) {
             this._extensionService.setExtension(element, 'space:Destination', value);
-            console.log('✅ Destination saved to XML:', value);
           }
           
           this.updateSectionIndicators(section, element);
           
         } catch (error) {
-          console.error('❌ Error saving destination:', error);
+          console.error('Error saving destination:', error);
         }
       });
     });
@@ -276,20 +604,17 @@ SpacePropertiesProvider.prototype.attachSectionEventListeners = function(section
   // Binding input - save on change
   if (bindingInput) {
     ['input', 'blur', 'change'].forEach(eventType => {
-      bindingInput.addEventListener(eventType, (e) => {
-        console.log(`🔄 Binding ${eventType}:`, e.target.value);
-        
+      bindingInput.addEventListener(eventType, (e) => {        
         try {
           const value = e.target.value.trim();
           if (value) {
             this._extensionService.setExtension(element, 'space:Binding', value);
-            console.log('✅ Binding saved to XML:', value);
           }
           
           this.updateSectionIndicators(section, element);
           
         } catch (error) {
-          console.error('❌ Error saving binding:', error);
+          console.error('Error saving binding:', error);
         }
       });
     });
@@ -356,9 +681,7 @@ SpacePropertiesProvider.prototype.updateSectionIndicators = function(section, el
 
 SpacePropertiesProvider.prototype.refreshSpaceSection = function(element) {
   const existingSection = document.querySelector('.space-properties-section');
-  if (existingSection && element) {
-    console.log('Refreshing space section with latest XML values');
-    
+  if (existingSection && element) {    
     // Update form fields with current XML values
     const currentType = this._extensionService.getCurrentType(element);
     const currentDestination = this._extensionService.getDestination(element);
