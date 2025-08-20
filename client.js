@@ -14,7 +14,7 @@ import ServicesModule from './services/ServicesModule';
 
 registerBpmnJSModdleExtension(spaceModdle);
 registerBpmnJSPlugin(ServicesModule); 
-// registerBpmnJSPlugin(TypedPaletteProvider); For the moment i removed the palette on the left for custom task
+// registerBpmnJSPlugin(TypedPaletteProvider);
 registerBpmnJSPlugin(TypedOverlay);
 registerBpmnJSPlugin(MovementContextPadProvider);
 registerBpmnJSPlugin(SpacePropertiesProvider); 

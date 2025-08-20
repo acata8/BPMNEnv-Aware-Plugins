@@ -491,6 +491,7 @@ SpacePropertiesProvider.prototype.createSpaceSection = function(element) {
                  placeholder="${translate('Enter destination')}"
                  value="${this._extensionService.getDestination(element) || ''}" />
         </div>
+        ${this.renderDestinationAttributes(element)}
       </div>
 
       <!-- Binding Entry (for Bind) -->
@@ -516,6 +517,88 @@ SpacePropertiesProvider.prototype.createSpaceSection = function(element) {
   this.attachSectionEventListeners(section, element);
 
   return section;
+};
+
+SpacePropertiesProvider.prototype.renderDestinationAttributes = function(element) {
+  const destination = this._extensionService.getDestination(element);
+  const hasEnvironment = this._environmentService.hasConfiguration();
+  const translate = this._translate;
+  
+  if (!hasEnvironment || !destination) {
+    return '';
+  }
+  // Find the place by id
+  const place = this._environmentService.findPlaceById(destination);
+  if(!place)
+    return ``;
+
+  // if (!place) {
+  //   return `
+  //     <div class="destination-attributes destination-not-found">
+  //       <small class="bio-properties-panel-description">
+  //         <span style="color: #f57c00;">${translate('Destination not found in environment')}</span>
+  //       </small>
+  //     </div>
+  //   `;
+  // }
+
+  // Render place attributes
+  const attributes = place.attributes || {};
+  const attributeKeys = Object.keys(attributes);
+  
+  if (attributeKeys.length === 0) {
+    return `
+      <div class="destination-attributes destination-no-attributes">
+        <small class="bio-properties-panel-description">
+          <span style="color: #666;">${translate('No attributes available for this destination')}</span>
+        </small>
+      </div>
+    `;
+  }
+
+  // Generate attributes HTML
+  const attributesHtml = attributeKeys.map(key => {
+    const value = attributes[key];
+    let displayValue = value;
+    let valueClass = 'attribute-value';
+    
+    // Special formatting for certain attribute types
+    if (key === 'freeSeats') {
+      if (value === 0) {
+        displayValue = `${value} (${translate('Full')})`;
+        valueClass = 'attribute-value attribute-value-warning';
+      } else if (value > 0) {
+        displayValue = `${value} ${translate('available')}`;
+        valueClass = 'attribute-value attribute-value-success';
+      }
+    } else if (key === 'zone') {
+      valueClass = 'attribute-value attribute-value-zone';
+      displayValue = `Zone ${value}`;
+    } else if (key === 'purpose') {
+      valueClass = 'attribute-value attribute-value-purpose';
+      displayValue = value.charAt(0).toUpperCase() + value.slice(1);
+    }
+    
+    return `
+      <div class="attribute-item">
+        <span class="attribute-key">${translate(key)}:</span>
+        <span class="${valueClass}">${displayValue}</span>
+      </div>
+    `;
+  }).join('');
+
+  return `
+    <div class="destination-attributes destination-found">
+      <div class="attributes-header">
+        <small class="bio-properties-panel-description">
+          <span style="color: #4caf50; font-weight: bolder">${translate('Destination attributes')}:</span>
+        </small>
+      </div>
+      <div class="attributes-content">
+        ${attributesHtml}
+      </div>
+    </div>
+  `;
 };
 
 SpacePropertiesProvider.prototype.attachSectionEventListeners = function(section, element) {
@@ -582,7 +665,7 @@ SpacePropertiesProvider.prototype.attachSectionEventListeners = function(section
     });
   }
 
-  // Destination input - save on change
+  // Destination input - save on change AND refresh attributes
   if (destinationInput) {
     ['input', 'blur', 'change'].forEach(eventType => {
       destinationInput.addEventListener(eventType, (e) => {        
@@ -593,6 +676,8 @@ SpacePropertiesProvider.prototype.attachSectionEventListeners = function(section
           }
           
           this.updateSectionIndicators(section, element);
+          
+          this.updateDestinationAttributes(section, element);
           
         } catch (error) {
           console.error('Error saving destination:', error);
@@ -618,6 +703,24 @@ SpacePropertiesProvider.prototype.attachSectionEventListeners = function(section
         }
       });
     });
+  }
+};
+
+SpacePropertiesProvider.prototype.updateDestinationAttributes = function(section, element) {
+  const destinationEntry = section.querySelector('.space-destination-entry');
+  if (!destinationEntry) return;
+
+  // Remove existing attributes
+  const existingAttributes = destinationEntry.querySelector('.destination-attributes');
+  if (existingAttributes) {
+    existingAttributes.remove();
+  }
+
+  // Add attributes
+  const attributesHtml = this.renderDestinationAttributes(element);
+  if (attributesHtml) {
+    const textField = destinationEntry.querySelector('.bio-properties-panel-textfield');
+    textField.insertAdjacentHTML('beforeend', attributesHtml);
   }
 };
 
@@ -698,6 +801,8 @@ SpacePropertiesProvider.prototype.refreshSpaceSection = function(element) {
     // Update visibility and indicators
     this.updateFieldVisibility(existingSection, currentType);
     this.updateSectionIndicators(existingSection, element);
+    
+    this.updateDestinationAttributes(existingSection, element);
   }
 };
 

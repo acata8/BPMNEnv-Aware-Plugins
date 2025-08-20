@@ -1,7 +1,6 @@
 import { getAllTaskTypes, getTaskConfig } from './TaskTypes';
 
 // Enhanced Form Handlers class with environment integration
-// Enhanced FormHandlers class with autocomplete functionality
 class FormHandlers {
   constructor(extensionService, elementRegistry, modeling, elementFactory, environmentService) {
     this.extensionService = extensionService;
@@ -27,7 +26,16 @@ class FormHandlers {
   renderDestinationForm(container, element, config, translate, onComplete) {
     const currentValue = this.extensionService.getDestination(element);
     const hasEnvConfig = this.environmentService.hasConfiguration();
-    const availableDestinations = hasEnvConfig ? this.environmentService.getAvailableDestinations() : [];
+    const availablePlaces = hasEnvConfig ? this.environmentService.getPlaces() : [];
+
+    // Find the current place to display its name
+    let displayValue = currentValue;
+    if (hasEnvConfig && currentValue && availablePlaces.length > 0) {
+      const currentPlace = availablePlaces.find(place => place.id === currentValue);
+      if (currentPlace) {
+        displayValue = currentPlace.name || currentPlace.id;
+      }
+    }
 
     container.innerHTML = `
       <div class="menu-header">
@@ -37,7 +45,7 @@ class FormHandlers {
         </button>
       </div>
       
-      ${hasEnvConfig ? this._renderEnvironmentDestinationForm(currentValue, availableDestinations, translate) : this._renderManualDestinationForm(currentValue, config, translate)}
+      ${hasEnvConfig ? this._renderEnvironmentDestinationForm(displayValue, currentValue, availablePlaces, translate) : this._renderManualDestinationForm(currentValue, config, translate)}
       
       <div class="actions">
         <button type="button" class="btn-save">${translate("Save")}</button>
@@ -48,45 +56,49 @@ class FormHandlers {
     const input = container.querySelector(".destination-autocomplete");
     
     // Set up autocomplete functionality
-    if (hasEnvConfig && input) {
-      this._setupAutocompleteHandlers(container, input, availableDestinations, currentValue);
+    if (hasEnvConfig && input && availablePlaces.length > 0) {
+      // Store the original place ID in data attribute
+      if (currentValue) {
+        input.setAttribute('data-place-id', currentValue);
+      }
+      this._setupAutocompleteHandlers(container, input, availablePlaces, displayValue);
     } else if (input) {
       // Simple input for manual mode
       setTimeout(() => {
         input.focus();
         input.select();
-      }, 0);
+      }, 50);
     }
 
     const onSave = () => {
-      const newDestination = input ? input.value.trim() || config.defaultDestination : config.defaultDestination;
-      this.extensionService.setExtension(element, "space:Destination", newDestination);
+      // Get the place ID from the data attribute, fallback to input value
+      const placeId = input.getAttribute('data-place-id') || input.value.trim();
+      const destinationToSave = placeId || config.defaultDestination;
+      this.extensionService.setExtension(element, "space:Destination", destinationToSave);
       onComplete();
     };
 
     this.attachFormHandlers(container, onSave, onComplete, input);
   }
 
-  _renderEnvironmentDestinationForm(currentValue, availableDestinations, translate) {
-    const configSummary = this.environmentService.getConfigSummary();
-    
+  _renderEnvironmentDestinationForm(displayValue, currentValue, availablePlaces, translate) {
     return `
       <div class="row">
         <label class="form-label">${translate("Destination")}</label>
         <div class="autocomplete-container">
           <input type="text" 
                  class="form-input destination-autocomplete" 
-                 placeholder="${translate("Type to search destinations...")}" 
-                 value="${currentValue || ''}"
+                 placeholder="${translate("Type to search places...")}" 
+                 value="${displayValue || ''}"
                  autocomplete="off"
                  spellcheck="false" />
-          <div class="autocomplete-dropdown" style="display: none;"></div>
+          <div class="autocomplete-dropdown"></div>
         </div>
       </div>
       
       <div class="row">
         <small class="help-text">
-          ${translate("Start typing to see available destinations")} • ${availableDestinations.length} ${translate("places available")}
+          ${translate("Search by name or ID")} • ${availablePlaces.length} ${translate("places available")}
         </small>
       </div>
     `;
@@ -109,37 +121,43 @@ class FormHandlers {
     `;
   }
 
-  _setupAutocompleteHandlers(container, input, availableDestinations, currentValue) {
+  _setupAutocompleteHandlers(container, input, availablePlaces, currentValue) {
     const dropdown = container.querySelector('.autocomplete-dropdown');
+    if (!dropdown) return;
+
     let selectedIndex = -1;
-    let filteredDestinations = [];
+    let filteredPlaces = [];
     let isDropdownVisible = false;
 
-    // Show all destinations when focused and empty
-    const showAllDestinations = () => {
+    // Show all places when focused and empty
+    const showAllPlaces = () => {
       if (input.value.trim() === '') {
-        filteredDestinations = availableDestinations.slice(0, 8);
-        this._renderDropdownItems(dropdown, filteredDestinations, input);
+        filteredPlaces = availablePlaces.slice(0, 8);
+        this._renderDropdownItems(dropdown, filteredPlaces, input);
         this._showDropdown(dropdown);
         isDropdownVisible = true;
         selectedIndex = -1;
       }
     };
 
-    // Filter destinations based on input
-    const filterDestinations = (query) => {
+    // Filter places based on input (search both name and ID)
+    const filterPlaces = (query) => {
       if (!query.trim()) {
-        filteredDestinations = availableDestinations.slice(0, 8);
+        filteredPlaces = availablePlaces.slice(0, 8);
       } else {
         const lowerQuery = query.toLowerCase();
-        filteredDestinations = availableDestinations
-          .filter(dest => dest.includes(lowerQuery))
+        filteredPlaces = availablePlaces
+          .filter(place => {
+            const name = (place.name || '').toLowerCase();
+            const id = (place.id || '').toLowerCase();
+            return name.includes(lowerQuery) || id.includes(lowerQuery);
+          })
           .slice(0, 8);
       }
       
-      this._renderDropdownItems(dropdown, filteredDestinations, input);
+      this._renderDropdownItems(dropdown, filteredPlaces, input);
       
-      if (filteredDestinations.length > 0) {
+      if (filteredPlaces.length > 0) {
         this._showDropdown(dropdown);
         isDropdownVisible = true;
       } else {
@@ -151,19 +169,26 @@ class FormHandlers {
     };
 
     // Input event handlers
-    input.addEventListener('focus', () => {
-      showAllDestinations();
+    input.addEventListener('focus', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setTimeout(() => {
+        showAllPlaces();
+      }, 0);
     });
 
     input.addEventListener('input', (e) => {
-      filterDestinations(e.target.value);
+      e.preventDefault();
+      e.stopPropagation();
+      filterPlaces(e.target.value);
     });
 
     input.addEventListener('keydown', (e) => {
-      if (!isDropdownVisible || filteredDestinations.length === 0) {
+      if (!isDropdownVisible || filteredPlaces.length === 0) {
         if (e.key === 'ArrowDown') {
-          showAllDestinations();
           e.preventDefault();
+          e.stopPropagation();
+          showAllPlaces();
         }
         return;
       }
@@ -171,20 +196,26 @@ class FormHandlers {
       switch (e.key) {
         case 'ArrowDown':
           e.preventDefault();
-          selectedIndex = Math.min(selectedIndex + 1, filteredDestinations.length - 1);
+          e.stopPropagation();
+          selectedIndex = Math.min(selectedIndex + 1, filteredPlaces.length - 1);
           this._highlightItem(dropdown, selectedIndex);
           break;
         
         case 'ArrowUp':
           e.preventDefault();
+          e.stopPropagation();
           selectedIndex = Math.max(selectedIndex - 1, -1);
           this._highlightItem(dropdown, selectedIndex);
           break;
         
         case 'Enter':
           e.preventDefault();
-          if (selectedIndex >= 0 && selectedIndex < filteredDestinations.length) {
-            input.value = filteredDestinations[selectedIndex];
+          e.stopPropagation();
+          if (selectedIndex >= 0 && selectedIndex < filteredPlaces.length) {
+            const selectedPlace = filteredPlaces[selectedIndex];
+            // Display the name in the input but store the ID in XML
+            input.value = selectedPlace.name || selectedPlace.id;
+            input.setAttribute('data-place-id', selectedPlace.id);
             this._hideDropdown(dropdown);
             isDropdownVisible = false;
             selectedIndex = -1;
@@ -193,6 +224,7 @@ class FormHandlers {
         
         case 'Escape':
           e.preventDefault();
+          e.stopPropagation();
           this._hideDropdown(dropdown);
           isDropdownVisible = false;
           selectedIndex = -1;
@@ -200,14 +232,24 @@ class FormHandlers {
       }
     });
 
-    // Click outside to close
-    document.addEventListener('click', (e) => {
+    // Click outside to close - using a more targeted approach
+    const handleClickOutside = (e) => {
       if (!container.contains(e.target)) {
         this._hideDropdown(dropdown);
         isDropdownVisible = false;
         selectedIndex = -1;
       }
-    });
+    };
+
+    // Add click outside handler with delay to avoid immediate closure
+    setTimeout(() => {
+      document.addEventListener('click', handleClickOutside);
+    }, 100);
+
+    // Cleanup function to remove event listener
+    container._cleanupAutocomplete = () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
 
     // Set initial focus
     setTimeout(() => {
@@ -215,18 +257,22 @@ class FormHandlers {
       if (currentValue) {
         input.select();
       }
-    }, 0);
+    }, 50);
   }
 
-  _renderDropdownItems(dropdown, destinations, input) {
+  _renderDropdownItems(dropdown, places, input) {
     const inputValue = input.value.toLowerCase();
     
-    dropdown.innerHTML = destinations.map((dest, index) => {
-      // Highlight matching text
-      const highlightedText = this._highlightMatch(dest, inputValue);
+    dropdown.innerHTML = places.map((place, index) => {
+      const placeName = place.name || '';
+      const placeId = place.id || '';
+      const displayText = placeName ? `${placeName} - ${placeId}` : placeId;
+      
+      // Highlight matching text in both name and ID
+      const highlightedText = this._highlightPlaceMatch(placeName, placeId, inputValue);
       
       return `
-        <div class="autocomplete-item" data-index="${index}" data-value="${this.escapeHtml(dest)}">
+        <div class="autocomplete-item" data-index="${index}" data-name="${this.escapeHtml(placeName)}" data-id="${this.escapeHtml(placeId)}">
           <span class="item-text">${highlightedText}</span>
           <span class="item-type">place</span>
         </div>
@@ -235,11 +281,43 @@ class FormHandlers {
 
     // Add click handlers to items
     dropdown.querySelectorAll('.autocomplete-item').forEach(item => {
-      item.addEventListener('click', () => {
-        input.value = item.getAttribute('data-value');
+      item.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const placeName = item.getAttribute('data-name');
+        const placeId = item.getAttribute('data-id');
+        // Display name in input but store ID for XML
+        input.value = placeName || placeId;
+        input.setAttribute('data-place-id', placeId);
         this._hideDropdown(dropdown);
       });
     });
+  }
+
+  _highlightPlaceMatch(placeName, placeId, query) {
+    if (!query) {
+      // Create display text with zone when no query (zone only displayed, not searchable)
+      if (placeName) {
+        return this.escapeHtml(`${placeName} - ${placeId}`);
+      } else {
+        return this.escapeHtml(placeId);
+      }
+    }
+    
+    const escapedName = this.escapeHtml(placeName || '');
+    const escapedId = this.escapeHtml(placeId || '');
+    const escapedQuery = this.escapeHtml(query);
+    const regex = new RegExp(`(${escapedQuery})`, 'gi');
+    
+    // Highlight matches only in name and ID (not zone)
+    const highlightedName = escapedName.replace(regex, '<mark>$1</mark>');
+    const highlightedId = escapedId.replace(regex, '<mark>$1</mark>');
+    
+    if (placeName) {
+      return `${highlightedName} - ${highlightedId}`;
+    } else {
+      return highlightedId;
+    }
   }
 
   _highlightMatch(text, query) {
@@ -336,15 +414,13 @@ class FormHandlers {
     
     setTimeout(() => {
       select.focus();
-    }, 0);
+    }, 50);
 
     const onSave = () => {
       const selectedValue = select.value;
       if (selectedValue) {
         this.extensionService.setExtension(element, "space:Binding", selectedValue);
         onComplete();
-      } else {
-        console.warn("No participant selected for binding");
       }
     };
 
@@ -358,17 +434,49 @@ class FormHandlers {
   }
 
   attachFormHandlers(container, onSave, onCancel, focusElement = null) {
-    container.querySelector(".btn-save")?.addEventListener("click", onSave);
-    container.querySelector(".btn-cancel")?.addEventListener("click", onCancel);
-    container.querySelector(".btn-close")?.addEventListener("click", onCancel);
+    const saveBtn = container.querySelector(".btn-save");
+    const cancelBtn = container.querySelector(".btn-cancel");
+    const closeBtn = container.querySelector(".btn-close");
+
+    if (saveBtn) {
+      saveBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onSave();
+      });
+    }
+
+    if (cancelBtn) {
+      cancelBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onCancel();
+      });
+    }
+
+    if (closeBtn) {
+      closeBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onCancel();
+      });
+    }
     
     container.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") onSave();
-      if (e.key === "Escape") onCancel();
+      if (e.key === "Enter" && e.target.tagName !== "INPUT") {
+        e.preventDefault();
+        e.stopPropagation();
+        onSave();
+      }
+      if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
+        onCancel();
+      }
     });
 
     if (focusElement) {
-      setTimeout(() => focusElement.focus(), 0);
+      setTimeout(() => focusElement.focus(), 50);
     }
   }
 
@@ -502,7 +610,7 @@ MovementContextPadProvider.prototype._openDirectEditForm = function(element, for
 
   // Make the container focusable for keyboard interaction
   container.setAttribute("tabindex", "-1");
-  setTimeout(() => container.focus(), 0);
+  setTimeout(() => container.focus(), 50);
 };
 
 MovementContextPadProvider.prototype._openMenu = function(element) {
@@ -545,7 +653,7 @@ MovementContextPadProvider.prototype._openMenu = function(element) {
 
   // Make the container focusable for keyboard interaction
   container.setAttribute("tabindex", "-1");
-  setTimeout(() => container.focus(), 0);
+  setTimeout(() => container.focus(), 50);
 };
 
 MovementContextPadProvider.prototype._createEnhancedMenuMarkup = function(element, translate) {
@@ -603,20 +711,27 @@ MovementContextPadProvider.prototype._createEnhancedMenuMarkup = function(elemen
     `;
   }).join('');
 
-  // Show current info for configured tasks
+ // Show current info for configured tasks
   let currentInfo = "";
-  if (currentType === "movement") {
-    const currentDestination = this.extensionService.getDestination(element);
-    currentInfo = `<div class="current-destination">
-      ${translate("Current destination")}: <strong>${currentDestination || "${destination}"}</strong>
-    </div>`;
-  } else if (currentType === "binding") {
-    const currentBinding = this.extensionService.getBinding(element);
-    const participantName = currentBinding ? this.formHandlers.getParticipantNameById(currentBinding) : null;
-    currentInfo = `<div class="current-destination">
-      ${translate("Current binding")}: <strong>${participantName || currentBinding || translate("None selected")}</strong>
-    </div>`;
-  }
+  // if (currentType === "movement") {
+  //   const currentDestination = this.extensionService.getDestination(element);
+  //   currentInfo = `<div class="current-destination">
+  //     ${translate("Current destination")}: <strong>${currentDestination || "${destination}"}</strong>
+  //   </div>`;
+  // } else if (currentType === "binding") {
+  //   const currentBinding = this.extensionService.getBinding(element);
+  //   const participantName = currentBinding ? this.formHandlers.getParticipantNameById(currentBinding) : null;
+  //   currentInfo = `<div class="current-destination">
+  //     ${translate("Current binding")}: <strong>${participantName || currentBinding || translate("None selected")}</strong>
+  //   </div>`;
+  // }
+
+  let currentTypeTask = "";
+  // if(currentType){
+  //   currentType = `<div class="current-type">
+  //                   ${currentType ? translate(`Current: ${getTaskConfig(currentType)?.typeValue || currentType}`) : translate("No type set")}
+  //                   </div>`
+  // }
 
   return `
     <div class="menu-header">
@@ -625,9 +740,7 @@ MovementContextPadProvider.prototype._createEnhancedMenuMarkup = function(elemen
         <span class="close-icon">×</span>
       </button>
     </div>
-    <div class="current-type">
-      ${currentType ? translate(`Current: ${getTaskConfig(currentType)?.typeValue || currentType}`) : translate("No type set")}
-    </div>
+    ${currentTypeTask}
     ${currentInfo}
     <div class="buttons">${buttons}</div>
     <div class="menu-warning" style="display:none;"></div>
@@ -753,6 +866,12 @@ MovementContextPadProvider.prototype._closeMenu = function(element) {
   if (overlayId) {
     this._overlays.remove(overlayId);
     this._openMenus.delete(element.id);
+  }
+
+  // Clean up autocomplete event listeners if they exist
+  const menuContainer = document.querySelector('.movement-type-menu');
+  if (menuContainer && menuContainer._cleanupAutocomplete) {
+    menuContainer._cleanupAutocomplete();
   }
 };
 
