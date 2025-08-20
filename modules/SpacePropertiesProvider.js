@@ -1,4 +1,4 @@
-import { getTaskConfig, getAllTaskTypes } from './TaskTypes';
+import { getTaskConfig, getAllTaskTypes, TASK_TYPE_KEYS } from './TaskTypes';
 
 function SpacePropertiesProvider(
   eventBus, 
@@ -109,6 +109,7 @@ SpacePropertiesProvider.prototype.createEnvironmentSection = function() {
   // Section should be expanded if there's configuration
   const isExpanded = hasConfig;
 
+  // The svg is the small round icon (•) on the group
   section.innerHTML = `
     <!-- Section Header -->
     <div class="bio-properties-panel-group-header ${isExpanded ? 'open' : ''} ${hasConfig ? '' : 'empty'}">
@@ -643,7 +644,7 @@ SpacePropertiesProvider.prototype.attachSectionEventListeners = function(section
   const destinationInput = section.querySelector('.space-destination-input');
   const bindingInput = section.querySelector('.space-binding-input');
 
-  // Type selection - immediate save to XML
+  // Type selection 
   if (typeSelect) {
     typeSelect.addEventListener('change', (e) => {
       try {
@@ -655,7 +656,7 @@ SpacePropertiesProvider.prototype.attachSectionEventListeners = function(section
           this._taskTypeService.clearTaskType(element);
         }
 
-        // Update UI immediately
+        // Update immediately
         this.updateFieldVisibility(section, newType);
         this.updateSectionIndicators(section, element);
 
@@ -724,20 +725,49 @@ SpacePropertiesProvider.prototype.updateDestinationAttributes = function(section
   }
 };
 
+// Only showing the changed parts - import and specific method updates
+
+import { getTaskConfig, getAllTaskTypes, TASK_TYPE_KEYS } from './TaskTypes';
+
+// ... other code remains the same ...
+
 SpacePropertiesProvider.prototype.updateFieldVisibility = function(section, selectedType) {
   const destinationEntry = section.querySelector('.space-destination-entry');
   const bindingEntry = section.querySelector('.space-binding-entry');
   const unbindingEntry = section.querySelector('.space-unbinding-entry');
 
   if (destinationEntry) {
-    destinationEntry.style.display = selectedType === 'movement' ? 'block' : 'none';
+    destinationEntry.style.display = selectedType === TASK_TYPE_KEYS.MOVEMENT ? 'block' : 'none';
   }
   if (bindingEntry) {
-    bindingEntry.style.display = selectedType === 'binding' ? 'block' : 'none';
+    bindingEntry.style.display = selectedType === TASK_TYPE_KEYS.BINDING ? 'block' : 'none';
   }
   if (unbindingEntry) {
-    unbindingEntry.style.display = selectedType === 'unbinding' ? 'block' : 'none';
+    unbindingEntry.style.display = selectedType === TASK_TYPE_KEYS.UNBINDING ? 'block' : 'none';
   }
+};
+
+SpacePropertiesProvider.prototype.getStatusText = function(element, currentType) {
+  const translate = this._translate;
+  
+  if (!currentType) {
+    return `<strong>${translate('Status')}:</strong> ${translate('No configuration')} <br><em>${translate('Select a type to configure this task')}</em>`;
+  }
+  
+  const config = getTaskConfig(currentType);
+  let status = `<strong>${translate('Status')}:</strong> ${config.typeValue} ${translate('configured')}`;
+  
+  if (currentType === TASK_TYPE_KEYS.MOVEMENT) {
+    const destination = this._extensionService.getDestination(element);
+    status += `<br><strong>${translate('Destination')}:</strong> ${destination || `<em>${translate('(required)')}</em>`}`;
+  } else if (currentType === TASK_TYPE_KEYS.BINDING) {
+    const binding = this._extensionService.getBinding(element);
+    status += `<br><strong>${translate('Participant')}:</strong> ${binding || `<em>${translate('(required)')}</em>`}`;
+  } else if (currentType === TASK_TYPE_KEYS.UNBINDING) {
+    status += `<br><em>${translate('Ready to release bound participants')}</em>`;
+  }
+  
+  return status;
 };
 
 SpacePropertiesProvider.prototype.updateSectionIndicators = function(section, element) {

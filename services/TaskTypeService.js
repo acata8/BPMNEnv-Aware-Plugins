@@ -1,8 +1,12 @@
-import { getTaskConfig, EXTENSION_TYPES } from '../modules/TaskTypes';
+import {
+  getTaskConfig,
+  EXTENSION_TYPES,
+  TASK_TYPE_KEYS,
+} from "../modules/TaskTypes";
 
 /**
  * TaskTypeService - Handles task type changes and related operations
- * 
+ *
  * Responsibilities:
  * - Set and change task types
  * - Clean up incompatible extensions
@@ -14,7 +18,7 @@ export function TaskTypeService(extensionService, eventBus) {
   this.eventBus = eventBus;
 }
 
-TaskTypeService.$inject = ['extensionService', 'eventBus'];
+TaskTypeService.$inject = ["extensionService", "eventBus"];
 
 /**
  * Set the task type and handle all related changes
@@ -22,20 +26,15 @@ TaskTypeService.$inject = ['extensionService', 'eventBus'];
  * @param {string} typeKey - Task type key
  * @throws {Error} If unknown task type
  */
-TaskTypeService.prototype.setTaskType = function(element, typeKey) {
+TaskTypeService.prototype.setTaskType = function (element, typeKey) {
   const config = getTaskConfig(typeKey);
   if (!config) {
     throw new Error(`Unknown task type: ${typeKey}`);
   }
 
   const previousType = this.extensionService.getCurrentType(element);
-
-  // Set the type extension
   this.extensionService.setExtension(element, EXTENSION_TYPES.TYPE, typeKey);
-
-  // Handle type transition
   this.handleTypeTransition(element, previousType, typeKey, config);
-
   // Fire change event
   this.eventBus.fire("elements.changed", { elements: [element] });
 };
@@ -47,7 +46,12 @@ TaskTypeService.prototype.setTaskType = function(element, typeKey) {
  * @param {string} newType - New task type
  * @param {Object} config - New type configuration
  */
-TaskTypeService.prototype.handleTypeTransition = function(element, previousType, newType, config) {
+TaskTypeService.prototype.handleTypeTransition = function (
+  element,
+  previousType,
+  newType,
+  config
+) {
   // Clean up incompatible extensions
   this.cleanupIncompatibleExtensions(element, config);
 
@@ -55,7 +59,7 @@ TaskTypeService.prototype.handleTypeTransition = function(element, previousType,
   this.initializeExtensions(element, config);
 
   // Handle specific type transitions
-  this.handleSpecificTransitions(element, previousType, newType, config);
+  this.handleSpecificTransitions(element, previousType, newType);
 };
 
 /**
@@ -63,9 +67,15 @@ TaskTypeService.prototype.handleTypeTransition = function(element, previousType,
  * @param {Object} element - BPMN element
  * @param {Object} config - Task type configuration
  */
-TaskTypeService.prototype.cleanupIncompatibleExtensions = function(element, config) {
+TaskTypeService.prototype.cleanupIncompatibleExtensions = function (
+  element,
+  config
+) {
   const allowedTypes = [EXTENSION_TYPES.TYPE, ...config.extensionElements];
-  this.extensionService.removeExtensions(element, v => !allowedTypes.includes(v.$type));
+  this.extensionService.removeExtensions(
+    element,
+    (v) => !allowedTypes.includes(v.$type)
+  );
 };
 
 /**
@@ -73,14 +83,14 @@ TaskTypeService.prototype.cleanupIncompatibleExtensions = function(element, conf
  * @param {Object} element - BPMN element
  * @param {Object} config - Task type configuration
  */
-TaskTypeService.prototype.initializeExtensions = function(element, config) {
+TaskTypeService.prototype.initializeExtensions = function (element, config) {
   // Initialize destination extension for movement tasks
   if (config.extensionElements.includes(EXTENSION_TYPES.DESTINATION)) {
     const currentDestination = this.extensionService.getDestination(element);
     if (!currentDestination && config.defaultDestination) {
       this.extensionService.setExtension(
-        element, 
-        EXTENSION_TYPES.DESTINATION, 
+        element,
+        EXTENSION_TYPES.DESTINATION,
         config.defaultDestination
       );
     }
@@ -100,26 +110,40 @@ TaskTypeService.prototype.initializeExtensions = function(element, config) {
  * @param {Object} element - BPMN element
  * @param {string} previousType - Previous task type
  * @param {string} newType - New task type
- * @param {Object} config - New type configuration
  */
-TaskTypeService.prototype.handleSpecificTransitions = function(element, previousType, newType, config) {
+TaskTypeService.prototype.handleSpecificTransitions = function (
+  element,
+  previousType,
+  newType
+) {
+  //Track all the conditions
+
   // Transition from binding to something else
-  if (previousType === "binding" && newType !== "binding") {
+  if (
+    previousType === TASK_TYPE_KEYS.BINDING &&
+    newType !== TASK_TYPE_KEYS.BINDING
+  ) {
     this.handleBindingToOtherTransition(element, newType);
   }
 
   // Transition to binding from something else
-  if (previousType !== "binding" && newType === "binding") {
+  if (
+    previousType !== TASK_TYPE_KEYS.BINDING &&
+    newType === TASK_TYPE_KEYS.BINDING
+  ) {
     this.handleOtherToBindingTransition(element, previousType);
   }
 
   // Transition to movement type
-  if (newType === "movement") {
+  if (newType === TASK_TYPE_KEYS.MOVEMENT) {
     this.handleMovementTransition(element, previousType);
   }
 
   // Transition from movement type
-  if (previousType === "movement" && newType !== "movement") {
+  if (
+    previousType === TASK_TYPE_KEYS.MOVEMENT &&
+    newType !== TASK_TYPE_KEYS.MOVEMENT
+  ) {
     this.handleFromMovementTransition(element, newType);
   }
 };
@@ -129,7 +153,10 @@ TaskTypeService.prototype.handleSpecificTransitions = function(element, previous
  * @param {Object} element - BPMN element
  * @param {string} newType - New task type
  */
-TaskTypeService.prototype.handleBindingToOtherTransition = function(element, newType) {
+TaskTypeService.prototype.handleBindingToOtherTransition = function (
+  element,
+  newType
+) {
   // Log the change for debugging
   console.log(`Changing binding task ${element.id} to ${newType}`);
 };
@@ -139,7 +166,10 @@ TaskTypeService.prototype.handleBindingToOtherTransition = function(element, new
  * @param {Object} element - BPMN element
  * @param {string} previousType - Previous task type
  */
-TaskTypeService.prototype.handleOtherToBindingTransition = function(element, previousType) {
+TaskTypeService.prototype.handleOtherToBindingTransition = function (
+  element,
+  previousType
+) {
   console.log(`Changing ${previousType} task ${element.id} to binding`);
 };
 
@@ -148,7 +178,10 @@ TaskTypeService.prototype.handleOtherToBindingTransition = function(element, pre
  * @param {Object} element - BPMN element
  * @param {string} previousType - Previous task type
  */
-TaskTypeService.prototype.handleMovementTransition = function(element, previousType) {
+TaskTypeService.prototype.handleMovementTransition = function (
+  element,
+  previousType
+) {
   // Could handle movement-specific initialization
 };
 
@@ -157,7 +190,10 @@ TaskTypeService.prototype.handleMovementTransition = function(element, previousT
  * @param {Object} element - BPMN element
  * @param {string} newType - New task type
  */
-TaskTypeService.prototype.handleFromMovementTransition = function(element, newType) {
+TaskTypeService.prototype.handleFromMovementTransition = function (
+  element,
+  newType
+) {
   // Could handle cleanup of movement-specific artifacts
 };
 
@@ -166,7 +202,7 @@ TaskTypeService.prototype.handleFromMovementTransition = function(element, newTy
  * @param {Object} element - BPMN element
  * @returns {string} Current task type
  */
-TaskTypeService.prototype.getCurrentType = function(element) {
+TaskTypeService.prototype.getCurrentType = function (element) {
   return this.extensionService.getCurrentType(element);
 };
 
@@ -176,7 +212,7 @@ TaskTypeService.prototype.getCurrentType = function(element) {
  * @param {string} typeKey - Task type to check
  * @returns {boolean} True if element has the specified type
  */
-TaskTypeService.prototype.hasType = function(element, typeKey) {
+TaskTypeService.prototype.hasType = function (element, typeKey) {
   return this.getCurrentType(element) === typeKey;
 };
 
@@ -184,7 +220,7 @@ TaskTypeService.prototype.hasType = function(element, typeKey) {
  * Clear task type from element
  * @param {Object} element - BPMN element
  */
-TaskTypeService.prototype.clearTaskType = function(element) {
+TaskTypeService.prototype.clearTaskType = function (element) {
   this.extensionService.clearCustomExtensions(element);
   this.eventBus.fire("elements.changed", { elements: [element] });
 };

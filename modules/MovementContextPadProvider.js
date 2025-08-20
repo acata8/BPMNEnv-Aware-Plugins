@@ -1,6 +1,6 @@
-import { getAllTaskTypes, getTaskConfig } from './TaskTypes';
+import { getAllTaskTypes, getTaskConfig, TASK_TYPE_KEYS } from './TaskTypes';
 
-// Enhanced Form Handlers class with environment integration
+
 class FormHandlers {
   constructor(extensionService, elementRegistry, modeling, elementFactory, environmentService) {
     this.extensionService = extensionService;
@@ -98,7 +98,7 @@ class FormHandlers {
       
       <div class="row">
         <small class="help-text">
-          ${translate("Search by name or ID")} • ${availablePlaces.length} ${translate("places available")}
+          ${translate("Search by name or ID")}. ${availablePlaces.length} ${translate("places available")}
         </small>
       </div>
     `;
@@ -539,7 +539,6 @@ MovementContextPadProvider.$inject = [
   "extensionService", "validationService", "taskTypeService", "environmentService"
 ];
 
-// Enhanced context pad entries to include edit options for current types
 MovementContextPadProvider.prototype.getContextPadEntries = function(element) {
   if (element?.type !== "bpmn:Task") return {};
 
@@ -554,7 +553,7 @@ MovementContextPadProvider.prototype.getContextPadEntries = function(element) {
     action: { click: () => this._openMenu(element) }
   };
 
-  var directEditType = currentType === "movement" ? "destination" : currentType;
+  var directEditType = currentType === TASK_TYPE_KEYS.MOVEMENT ? "destination" : currentType;
 
   entries["movement.edit-"+currentType] = {
       group: "edit",
@@ -566,7 +565,6 @@ MovementContextPadProvider.prototype.getContextPadEntries = function(element) {
   return entries;
 };
 
-// New method to open edit forms directly
 MovementContextPadProvider.prototype._openDirectEditForm = function(element, formType) {
   this._contextPad.close();
   this._closeMenu(element);
@@ -765,12 +763,12 @@ MovementContextPadProvider.prototype._handleTypeSelection = function(element, ty
   
   if (currentType === typeKey) {
     // Same type selected - go directly to appropriate edit form
-    if (typeKey === "movement") {
+    if (typeKey === TASK_TYPE_KEYS.MOVEMENT) {
       this.formHandlers.renderDestinationForm(container, element, config, translate, () => {
         this._closeMenu(element);
       });
       return;
-    } else if (typeKey === "binding") {
+    } else if (typeKey === TASK_TYPE_KEYS.BINDING) {
       this.formHandlers.renderBindingForm(container, element, config, translate, () => {
         this._closeMenu(element);
       });
@@ -788,7 +786,7 @@ MovementContextPadProvider.prototype._handleTypeSelection = function(element, ty
   if (validation.warning) {
     this._showWarning(container, validation.warning);
   }
-
+  
   // Apply the type change immediately
   this._executeTypeChange(element, typeKey, config, container, translate);
 };

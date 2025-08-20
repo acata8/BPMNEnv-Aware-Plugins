@@ -2,9 +2,15 @@ import movementIcon from "../icons/customTask/movement.svg";
 import bindIcon from "../icons/customTask/binding.svg";
 import unbindIcon from "../icons/customTask/unbinding.svg";
 
+export const TASK_TYPE_KEYS = {
+  MOVEMENT: "movement",
+  BINDING: "binding", 
+  UNBINDING: "unbinding"
+};
+
 export const TASK_TYPES_CONFIG = {
-  movement: {
-    key: "movement",
+  [TASK_TYPE_KEYS.MOVEMENT]: {
+    key: TASK_TYPE_KEYS.MOVEMENT,
     typeValue: "Movement",
     displayName: "Move to destination",
     icon: { class: "movement-badge", iconFile: movementIcon },
@@ -13,8 +19,8 @@ export const TASK_TYPES_CONFIG = {
     validationRules: [], // Movement has no special validation rules
     formType: "destination"
   },
-  binding: {
-    key: "binding", 
+  [TASK_TYPE_KEYS.BINDING]: {
+    key: TASK_TYPE_KEYS.BINDING, 
     typeValue: "Bind",
     displayName: "Bind",
     icon: { class: "binding-badge", iconFile: bindIcon },
@@ -24,8 +30,8 @@ export const TASK_TYPES_CONFIG = {
     ],
     formType: "binding"
   },
-  unbinding: {
-    key: "unbinding",
+  [TASK_TYPE_KEYS.UNBINDING]: {
+    key: TASK_TYPE_KEYS.UNBINDING,
     typeValue: "Unbind", 
     displayName: "Unbind",
     icon: { class: "unbinding-badge", iconFile: unbindIcon },
@@ -47,11 +53,11 @@ export const EXTENSION_TYPES = {
 export const VALIDATION_RULES = {
   requiresUpstreamBinding: {
     description: "Task requires a preceding Binding task in the same pool",
-    appliesTo: ["unbinding"]
+    appliesTo: [TASK_TYPE_KEYS.UNBINDING]
   },
   noDownstreamUnbinding: {
     description: "Prevents changing from Binding if Unbinding tasks exist downstream",
-    appliesTo: ["binding"]
+    appliesTo: [TASK_TYPE_KEYS.BINDING]
   }
 };
 
@@ -72,10 +78,10 @@ export const getValidationRules = (taskKey) => {
 
 export const requiresValidation = (fromType, toType) => {
   // Changing FROM binding requires validation
-  if (fromType === "binding" && toType !== "binding") return true;
+  if (fromType === TASK_TYPE_KEYS.BINDING && toType !== TASK_TYPE_KEYS.BINDING) return true;
   
   // Changing TO unbinding requires validation  
-  if (toType === "unbinding") return true;
+  if (toType === TASK_TYPE_KEYS.UNBINDING) return true;
   
   return false;
 };

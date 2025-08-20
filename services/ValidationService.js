@@ -1,4 +1,4 @@
-import { getTaskConfig, requiresValidation } from '../modules/TaskTypes';
+import { getTaskConfig, requiresValidation, TASK_TYPE_KEYS } from '../modules/TaskTypes';
 
 export function ValidationService(elementRegistry, extensionService) {
   this.elementRegistry = elementRegistry;
@@ -59,14 +59,12 @@ ValidationService.prototype.getValidationWarnings = function(element, newTypeKey
   const warnings = [];
   const config = getTaskConfig(newTypeKey);
 
-  // Apply validation rules as warnings
   for (const rule of config.validationRules) {
     const warning = this.applyValidationWarning(element, rule, translate, currentType, newTypeKey);
     if (warning) warnings.push(warning);
   }
 
-  // Additional warnings when changing FROM specific types
-  if (currentType === "binding" && newTypeKey !== "binding") {
+  if (currentType === TASK_TYPE_KEYS.BINDING && newTypeKey !== TASK_TYPE_KEYS.BINDING) {
     const bindingWarning = this.getBindingChangeWarning(element, translate);
     if (bindingWarning) warnings.push(bindingWarning);
   }
@@ -109,7 +107,7 @@ ValidationService.prototype.getUpstreamBindingWarning = function(element, transl
     return {
       type: "missing_upstream_binding",
       severity: "warning",
-      message: translate("⚠️ No preceding Binding task found in the same pool. Consider adding a Binding task before this Unbinding."),
+      message: translate("No preceding Binding task found in the same pool. Consider adding a Binding task before this Unbinding."),
       suggestion: translate("Add a Binding task earlier in the flow to establish what should be unbound.")
     };
   }
@@ -127,7 +125,7 @@ ValidationService.prototype.getUpstreamBindingWarning = function(element, transl
  */
 ValidationService.prototype.getDownstreamUnbindingWarning = function(element, translate, currentType, newTypeKey) {
   // Only warn when changing FROM binding to non-binding
-  if (currentType === "binding" && newTypeKey !== "binding") {
+  if (currentType === TASK_TYPE_KEYS.BINDING && newTypeKey !== TASK_TYPE_KEYS.BINDING) {
     const dependentUnbindings = this.findDependentUnbindingTasks(element);
     
     if (dependentUnbindings.length > 0) {
@@ -141,7 +139,7 @@ ValidationService.prototype.getDownstreamUnbindingWarning = function(element, tr
       return {
         type: "orphaned_unbinding",
         severity: "warning", 
-        message: translate(`⚠️ This change will leave Unbinding tasks without a corresponding Binding: ${taskNames}${suffix}`),
+        message: translate(`This change will leave Unbinding tasks without a corresponding Binding: ${taskNames}${suffix}`),
         suggestion: translate("Consider changing those Unbinding tasks to a different type or keeping this as a Binding task."),
         affectedTasks: dependentUnbindings
       };
@@ -168,7 +166,7 @@ ValidationService.prototype.getBindingChangeWarning = function(element, translat
     return {
       type: "binding_change_impact",
       severity: "info",
-      message: translate(`ℹ️ Changing this Binding will affect these Unbinding tasks: ${taskInfo}`),
+      message: translate(`Changing this Binding will affect these Unbinding tasks: ${taskInfo}`),
       suggestion: translate("Make sure this change aligns with your process design."),
       affectedTasks: dependentUnbindings
     };
@@ -225,7 +223,7 @@ ValidationService.prototype.findUpstreamBindingTasks = function(element) {
 
       if (source.type === "bpmn:Task") {
         const sourceType = this.extensionService.getCurrentType(source);
-        if (sourceType === "binding") {
+        if (sourceType === TASK_TYPE_KEYS.BINDING) {
           bindingTasks.push(source);
         }
       }
@@ -237,6 +235,7 @@ ValidationService.prototype.findUpstreamBindingTasks = function(element) {
   return bindingTasks;
 };
 
+// Searching for all the dependent unbinding task, if a binding task exists
 ValidationService.prototype.findDependentUnbindingTasks = function(bindingElement) {
   const pool = this.getContainingParticipant(bindingElement);
   if (!pool) return [];
@@ -249,27 +248,23 @@ ValidationService.prototype.findDependentUnbindingTasks = function(bindingElemen
     const node = stack.pop();
     if (!node || visited.has(node.id)) continue;
     visited.add(node.id);
-
     const outgoing = (node.outgoing || []).filter(c => c.type === "bpmn:SequenceFlow");
-    
     for (const flow of outgoing) {
       const target = flow.target;
       if (!target || !this.isDescendantOf(target, pool)) continue;
 
       if (target.type === "bpmn:Task") {
         const targetType = this.extensionService.getCurrentType(target);
-        if (targetType === "unbinding") {
+        if (targetType === TASK_TYPE_KEYS.UNBINDING) {
           dependentTasks.push(target);
         }
       }
-      
       stack.push(target);
     }
   }
 
   return dependentTasks;
 };
-
 ValidationService.prototype.getContainingParticipant = function(element) {
   const process = element?.businessObject?.$parent;
   if (!process?.id) return null;
