@@ -86,7 +86,7 @@
 
 /* Keyboard navigation hint */
 .autocomplete-dropdown::before {
-  content: "↑↓ Navigate • Enter Select • Esc Close";
+  content: "Navigate • Enter Select • Esc Close";
   display: block;
   padding: 6px 12px;
   background: #f8f9fa;
@@ -198,7 +198,6 @@
 }
 
 .autocomplete-loading::before {
-  content: "⏳ ";
   margin-right: 4px;
 }
 
