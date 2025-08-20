@@ -6,6 +6,7 @@
  * - Provide access to places, edges, logical places, and views
  * - Handle configuration validation and queries
  * - Emit events when configuration changes
+ * - Handle manual file loading
  */
 export function EnvironmentService(eventBus) {
   this.eventBus = eventBus;
@@ -32,14 +33,6 @@ EnvironmentService.prototype.setConfiguration = function(config) {
   this.currentConfig = config;
   this.isLoaded = true;
   
-  console.log('Environment configuration loaded:', {
-    fileName: config.fileName,
-    places: config.data.places?.length || 0,
-    edges: config.data.edges?.length || 0,
-    logicalPlaces: config.data.logicalPlaces?.length || 0,
-    views: config.data.views?.length || 0
-  });
-
   // Fire event for other modules
   this.eventBus.fire('environment.ready', {
     config: this.currentConfig
@@ -56,6 +49,94 @@ EnvironmentService.prototype.clearConfiguration = function() {
   console.log('Environment configuration cleared');
   
   this.eventBus.fire('environment.cleared');
+};
+
+/**
+ * Handle manual file loading from user input
+ * @param {File} file - File object from input
+ */
+EnvironmentService.prototype.handleManualFileLoad = function(file) {
+  const reader = new FileReader();
+  
+  reader.onload = (e) => {
+    try {
+      const content = e.target.result;
+      const data = JSON.parse(content);
+      
+      // Validate the data structure
+      if (!this.validateEnvironmentData(data)) {
+        this.eventBus.fire('environment.manual.loaded', {
+          success: false,
+          error: 'Invalid environment file format'
+        });
+        return;
+      }
+      
+      // Create configuration object
+      const config = {
+        data: data,
+        fileName: file.name,
+        loadedAt: new Date().toISOString(),
+        source: 'manual'
+      };
+      
+      // Set the configuration
+      this.setConfiguration(config);
+      
+      // Fire success event
+      this.eventBus.fire('environment.manual.loaded', {
+        success: true,
+        config: config
+      });
+      
+    } catch (error) {
+      console.error('Failed to parse environment file:', error);
+      this.eventBus.fire('environment.manual.loaded', {
+        success: false,
+        error: 'Failed to parse JSON file: ' + error.message
+      });
+    }
+  };
+  
+  reader.onerror = () => {
+    this.eventBus.fire('environment.manual.loaded', {
+      success: false,
+      error: 'Failed to read file'
+    });
+  };
+  
+  reader.readAsText(file);
+};
+
+/**
+ * Validate environment data structure
+ * @param {Object} data - Data to validate
+ * @returns {boolean} True if valid
+ */
+EnvironmentService.prototype.validateEnvironmentData = function(data) {
+  if (!data || typeof data !== 'object') {
+    return false;
+  }
+  
+  // Check for required arrays
+  const requiredArrays = ['places', 'edges', 'logicalPlaces', 'views'];
+  for (const key of requiredArrays) {
+    if (!Array.isArray(data[key])) {
+      console.warn(`Missing or invalid ${key} array in environment data`);
+      return false;
+    }
+  }
+  
+  // Validate places structure
+  if (data.places.length > 0) {
+    const place = data.places[0];
+    if (!place.id || !place.name) {
+      console.warn('Places must have id and name properties');
+      return false;
+    }
+  }
+  
+  return true;
 };
 
 /**
@@ -169,23 +250,6 @@ EnvironmentService.prototype.getAvailablePlaces = function(minSeats = 1) {
 };
 
 /**
- * Get logical places matching conditions
- * @param {Object} conditions - Conditions to match
- * @returns {Array} Array of matching logical places
- */
-EnvironmentService.prototype.getLogicalPlacesByCondition = function(conditions) {
-  const logicalPlaces = this.getLogicalPlaces();
-  return logicalPlaces.filter(lp => {
-    return lp.conditions?.some(condition => {
-      return Object.keys(conditions).every(key => {
-        const conditionMatch = lp.conditions.find(c => c.attribute === key);
-        return conditionMatch && this._evaluateCondition(conditionMatch, conditions[key]);
-      });
-    });
-  });
-};
-
-/**
  * Get configuration summary for debugging
  * @returns {Object} Summary of loaded configuration
  */
@@ -199,6 +263,7 @@ EnvironmentService.prototype.getConfigSummary = function() {
     loaded: true,
     fileName: this.currentConfig.fileName,
     loadedAt: this.currentConfig.loadedAt,
+    source: this.currentConfig.source || 'unknown',
     summary: {
       places: data.places?.length || 0,
       edges: data.edges?.length || 0,
@@ -210,42 +275,7 @@ EnvironmentService.prototype.getConfigSummary = function() {
   };
 };
 
-/**
- * Evaluate a condition against a value
- * @param {Object} condition - Condition object with operator and value
- * @param {*} value - Value to test
- * @returns {boolean} True if condition matches
- * @private
- */
-EnvironmentService.prototype._evaluateCondition = function(condition, value) {
-  const { operator, value: conditionValue } = condition;
-  
-  switch (operator) {
-    case '==':
-    case '=':
-      return value == conditionValue;
-    case '!=':
-    case '<>':
-      return value != conditionValue;
-    case '>':
-      return Number(value) > Number(conditionValue);
-    case '>=':
-      return Number(value) >= Number(conditionValue);
-    case '<':
-      return Number(value) < Number(conditionValue);
-    case '<=':
-      return Number(value) <= Number(conditionValue);
-    case 'contains':
-      return String(value).toLowerCase().includes(String(conditionValue).toLowerCase());
-    case 'startsWith':
-      return String(value).toLowerCase().startsWith(String(conditionValue).toLowerCase());
-    case 'endsWith':
-      return String(value).toLowerCase().endsWith(String(conditionValue).toLowerCase());
-    default:
-      console.warn(`Unknown condition operator: ${operator}`);
-      return false;
-  }
-};
+
 
 /**
  * Validate that a destination exists in the configuration

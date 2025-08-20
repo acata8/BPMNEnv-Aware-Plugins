@@ -554,22 +554,14 @@ MovementContextPadProvider.prototype.getContextPadEntries = function(element) {
     action: { click: () => this._openMenu(element) }
   };
 
-  // Add specific edit entries for current type
-  if (currentType === "movement") {
-    entries["movement.edit-destination"] = {
+  var directEditType = currentType === "movement" ? "destination" : currentType;
+
+  entries["movement.edit-"+currentType] = {
       group: "edit",
-      className: "bpmn-icon-conditional-flow",
-      title: this._translate("Edit destination"),
-      action: { click: () => this._openDirectEditForm(element, "destination") }
+      className: "bpmn-icon-screw-wrench",
+      title: this._translate("Edit "+directEditType),
+      action: { click: () => this._openDirectEditForm(element, directEditType) }
     };
-  } else if (currentType === "binding") {
-    entries["movement.edit-binding"] = {
-      group: "edit", 
-      className: "bpmn-icon-connection-multi",
-      title: this._translate("Edit participant binding"),
-      action: { click: () => this._openDirectEditForm(element, "binding") }
-    };
-  }
 
   return entries;
 };

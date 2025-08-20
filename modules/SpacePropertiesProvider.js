@@ -588,11 +588,11 @@ SpacePropertiesProvider.prototype.renderDestinationAttributes = function(element
   }).join('');
 
   return `
-    <div class="destination-attributes destination-found">
+  <div class="destination-attributes destination-found">
+      <small class="bio-properties-panel-description">
+        <span>${translate('Destination attributes')}</span>
+      </small>
       <div class="attributes-header">
-        <small class="bio-properties-panel-description">
-          <span style="color: #4caf50; font-weight: bolder">${translate('Destination attributes')}:</span>
-        </small>
       </div>
       <div class="attributes-content">
         ${attributesHtml}
