@@ -1,6 +1,5 @@
 import { getAllTaskTypes, getTaskConfig, TASK_TYPE_KEYS } from './TaskTypes';
 
-
 class FormHandlers {
   constructor(extensionService, elementRegistry, modeling, elementFactory, environmentService) {
     this.extensionService = extensionService;
@@ -14,8 +13,6 @@ class FormHandlers {
     switch (config.formType) {
       case "destination":
         return this.renderDestinationForm(container, element, config, translate, onComplete);
-      case "binding":
-        return this.renderBindingForm(container, element, config, translate, onComplete);
       case "none":
         return onComplete();
       default:
@@ -81,6 +78,7 @@ class FormHandlers {
     this.attachFormHandlers(container, onSave, onComplete, input);
   }
 
+  // Keep all the helper methods for destination form
   _renderEnvironmentDestinationForm(displayValue, currentValue, availablePlaces, translate) {
     return `
       <div class="row">
@@ -357,82 +355,6 @@ class FormHandlers {
     dropdown.classList.remove('visible');
   }
 
-  // Keep existing binding form method unchanged
-  renderBindingForm(container, element, config, translate, onComplete) {
-    const participants = this.getAvailableParticipants(element);
-    
-    if (!participants.length) {
-      container.innerHTML = `
-        <div class="menu-header">
-          <div class="title">${translate("Select Participant")}</div>
-          <button type="button" class="btn-close" title="${translate("Close menu")}" aria-label="${translate("Close")}">
-            <span class="close-icon">×</span>
-          </button>
-        </div>
-        <div class="row" style="color:#555; margin-bottom:6px;">
-          ${translate("No other participants available. Add another Participant (pool) to bind.")}
-        </div>
-        <div class="actions">
-          <button type="button" class="btn-cancel">${translate("OK")}</button>
-        </div>
-      `;
-      container.querySelector(".btn-cancel").addEventListener("click", onComplete);
-      return;
-    }
-
-    const currentBinding = this.extensionService.getBinding(element);
-    const defaultBinding = currentBinding || participants[0]?.id;
-
-    container.innerHTML = `
-      <div class="menu-header">
-        <div class="title">${translate("Select Participant")}</div>
-        <button type="button" class="btn-close" title="${translate("Close menu")}" aria-label="${translate("Close")}">
-          <span class="close-icon">×</span>
-        </button>
-      </div>
-      
-      <div class="row">
-        <label class="form-label">${translate("Select Participant to Bind")}</label>
-        <select class="form-select binding-select" style="width:100%;padding:8px;border:1px solid #cfcfcf;border-radius:6px;outline:none;" required>
-          ${participants.map(p => 
-            `<option value="${p.id}" ${p.id === defaultBinding ? 'selected' : ''}>${this.escapeHtml(p.name)}</option>`
-          ).join("")}
-        </select>
-      </div>
-      
-      <div class="actions">
-        <button type="button" class="btn-save">${translate("Save")}</button>
-        <button type="button" class="btn-cancel">${translate("Cancel")}</button>
-      </div>
-    `;
-
-    const select = container.querySelector(".binding-select");
-    
-    if (!select.value && participants.length > 0) {
-      select.value = participants[0].id;
-    }
-    
-    setTimeout(() => {
-      select.focus();
-    }, 50);
-
-    const onSave = () => {
-      const selectedValue = select.value;
-      if (selectedValue) {
-        this.extensionService.setExtension(element, "space:Binding", selectedValue);
-        onComplete();
-      }
-    };
-
-    this.attachFormHandlers(container, onSave, onComplete, select);
-  }
-
-  // Keep all existing utility methods unchanged
-  getParticipantNameById(participantId) {
-    const participant = this.elementRegistry.get(participantId);
-    return participant?.businessObject?.name || participantId;
-  }
-
   attachFormHandlers(container, onSave, onCancel, focusElement = null) {
     const saveBtn = container.querySelector(".btn-save");
     const cancelBtn = container.querySelector(".btn-cancel");
@@ -478,29 +400,6 @@ class FormHandlers {
     if (focusElement) {
       setTimeout(() => focusElement.focus(), 50);
     }
-  }
-
-  getAvailableParticipants(element) {
-    const containingParticipant = this.getContainingParticipant(element);
-    
-    return this.elementRegistry.getAll()
-      .filter(e => e.type === "bpmn:Participant" && 
-                   (!containingParticipant || e.id !== containingParticipant.id))
-      .map(e => ({
-        id: e.id,
-        name: (e.businessObject?.name) || e.id
-      }));
-  }
-
-  getContainingParticipant(element) {
-    const process = element?.businessObject?.$parent;
-    if (!process?.id) return null;
-
-    return this.elementRegistry.getAll().find(e => {
-      if (e.type !== "bpmn:Participant") return false;
-      const pref = e.businessObject?.processRef;
-      return pref?.id === process.id;
-    });
   }
 
   escapeHtml(str) {
@@ -553,14 +452,15 @@ MovementContextPadProvider.prototype.getContextPadEntries = function(element) {
     action: { click: () => this._openMenu(element) }
   };
 
-  var directEditType = currentType === TASK_TYPE_KEYS.MOVEMENT ? "destination" : currentType;
-
-  entries["movement.edit-"+currentType] = {
+  // Only show edit for movement (destination) - not for binding/unbinding
+  if (currentType === TASK_TYPE_KEYS.MOVEMENT) {
+    entries["movement.edit-destination"] = {
       group: "edit",
       className: "bpmn-icon-screw-wrench",
-      title: this._translate("Edit "+directEditType),
-      action: { click: () => this._openDirectEditForm(element, directEditType) }
+      title: this._translate("Edit destination"),
+      action: { click: () => this._openDirectEditForm(element, "destination") }
     };
+  }
 
   return entries;
 };
@@ -581,12 +481,9 @@ MovementContextPadProvider.prototype._openDirectEditForm = function(element, for
 
   const config = getTaskConfig(this.extensionService.getCurrentType(element));
   
+  // Only handle destination form
   if (formType === "destination" && config) {
     this.formHandlers.renderDestinationForm(container, element, config, this._translate, () => {
-      this._closeMenu(element);
-    });
-  } else if (formType === "binding" && config) {
-    this.formHandlers.renderBindingForm(container, element, config, this._translate, () => {
       this._closeMenu(element);
     });
   }
@@ -667,8 +564,6 @@ MovementContextPadProvider.prototype._createEnhancedMenuMarkup = function(elemen
     if (isCurrentType) {
       if (config.key === "movement") {
         buttonText = translate("Edit destination");
-      } else if (config.key === "binding") {
-        buttonText = translate("Edit participant");
       } else {
         buttonText = translate(config.typeValue);
       }
@@ -684,7 +579,11 @@ MovementContextPadProvider.prototype._createEnhancedMenuMarkup = function(elemen
     // Build title attribute
     let titleAttr = '';
     if (isCurrentType) {
-      titleAttr = 'title="Current type - click to edit"';
+      if (config.key === "movement") {
+        titleAttr = 'title="Current type - click to edit destination"';
+      } else {
+        titleAttr = 'title="Current type"';
+      }
     } else if (hasWarnings && warningTooltip) {
       titleAttr = `title="${warningTooltip}"`;
     }
@@ -701,28 +600,6 @@ MovementContextPadProvider.prototype._createEnhancedMenuMarkup = function(elemen
     `;
   }).join('');
 
- // Show current info for configured tasks
-  let currentInfo = "";
-  // if (currentType === "movement") {
-  //   const currentDestination = this.extensionService.getDestination(element);
-  //   currentInfo = `<div class="current-destination">
-  //     ${translate("Current destination")}: <strong>${currentDestination || "${destination}"}</strong>
-  //   </div>`;
-  // } else if (currentType === "binding") {
-  //   const currentBinding = this.extensionService.getBinding(element);
-  //   const participantName = currentBinding ? this.formHandlers.getParticipantNameById(currentBinding) : null;
-  //   currentInfo = `<div class="current-destination">
-  //     ${translate("Current binding")}: <strong>${participantName || currentBinding || translate("None selected")}</strong>
-  //   </div>`;
-  // }
-
-  let currentTypeTask = "";
-  // if(currentType){
-  //   currentType = `<div class="current-type">
-  //                   ${currentType ? translate(`Current: ${getTaskConfig(currentType)?.typeValue || currentType}`) : translate("No type set")}
-  //                   </div>`
-  // }
-
   return `
     <div class="menu-header">
       <div class="title">${translate("Set Task Type")}</div>
@@ -730,12 +607,65 @@ MovementContextPadProvider.prototype._createEnhancedMenuMarkup = function(elemen
         <span class="close-icon">×</span>
       </button>
     </div>
-    ${currentTypeTask}
-    ${currentInfo}
     <div class="buttons">${buttons}</div>
     <div class="menu-warning" style="display:none;"></div>
     <div class="menu-info" style="display:none;"></div>
   `;
+};
+
+MovementContextPadProvider.prototype._handleTypeSelection = function(element, typeKey, container, translate) {
+  const config = getTaskConfig(typeKey);
+  if (!config) return;
+
+  const currentType = this.extensionService.getCurrentType(element);
+  
+  if (currentType === typeKey) {
+    // Same type selected - only edit if it's movement (destination form)
+    if (typeKey === TASK_TYPE_KEYS.MOVEMENT) {
+      this.formHandlers.renderDestinationForm(container, element, config, translate, () => {
+        this._closeMenu(element);
+      });
+      return;
+    }
+    // For binding/unbinding, just close menu
+    this._closeMenu(element);
+    return;
+  }
+
+  // Get validation warnings (if any)
+  const validation = this.validationService.validateTypeChange(element, typeKey, translate);
+  
+  // Show warning in the menu if present, but don't block
+  if (validation.warning) {
+    this._showWarning(container, validation.warning);
+  }
+  
+  // Apply the type change immediately
+  this._executeTypeChange(element, typeKey, config, container, translate);
+};
+
+MovementContextPadProvider.prototype._executeTypeChange = function(element, typeKey, config, container, translate) {
+  try {
+    // Use TaskTypeService for the change
+    this.taskTypeService.setTaskType(element, typeKey);
+
+    // Clear any previous warnings
+    this._clearWarning(container);
+
+    // Handle different form types
+    if (config.formType === "destination") {
+      // For movement - show destination form with autocomplete
+      this.formHandlers.renderDestinationForm(container, element, config, translate, () => {
+        this._closeMenu(element);
+      });
+    } else {
+      // For binding/unbinding - no form needed, just close
+      this._closeMenu(element);
+    }
+    
+  } catch (error) {
+    this._showValidationError(container, translate("Failed to change task type: " + error.message));
+  }
 };
 
 MovementContextPadProvider.prototype._prevalidateTypeChange = function(element, newTypeKey, translate) {

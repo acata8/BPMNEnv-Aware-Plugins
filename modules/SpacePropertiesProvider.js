@@ -5,13 +5,18 @@ function SpacePropertiesProvider(
   translate,
   extensionService,
   taskTypeService,
-  environmentService
+  environmentService,
+  messageFlowXmlService, 
+  elementRegistry
 ) {
   this._eventBus = eventBus;
   this._translate = translate;
   this._extensionService = extensionService;
   this._taskTypeService = taskTypeService;
   this._environmentService = environmentService;
+  this._messageFlowXmlService = messageFlowXmlService;  
+  this._elementRegistry = elementRegistry;
+
 
   console.info('SpacePropertiesProvider initialized');
 
@@ -19,12 +24,14 @@ function SpacePropertiesProvider(
     if (event.newSelection && event.newSelection.length === 1) {
       const element = event.newSelection[0];
       
-      if (element.type === 'bpmn:Task') {
-        setTimeout(() => this.createStandaloneSpaceSection(element), 200);
-      } else {
-        // Not a task - show environment configuration section
-        setTimeout(() => this.showEnvironmentSection(), 200);
-      }
+        if (element.type === 'bpmn:Task') {
+          setTimeout(() => this.createStandaloneSpaceSection(element), 200);
+        } else if (element.type === 'bpmn:MessageFlow') {
+          // Show binding info for connections
+          setTimeout(() => this.createMessageFlowSpaceSection(element), 200);
+        } else {
+          setTimeout(() => this.showEnvironmentSection(), 200);
+        }
     } else if (event.newSelection && event.newSelection.length === 0) {
       // No selection - show environment configuration section
       setTimeout(() => this.showEnvironmentSection(), 200);
@@ -62,8 +69,138 @@ SpacePropertiesProvider.$inject = [
   'translate',
   'extensionService',
   'taskTypeService',
-  'environmentService'
+  'environmentService',
+  'messageFlowXmlService',  
+  'elementRegistry'
 ];
+
+/**
+ * Create Space Properties section for message flows
+ */
+SpacePropertiesProvider.prototype.createMessageFlowSpaceSection = function(messageFlow) {
+  const propertiesPanel = document.querySelector('.bio-properties-panel-scroll-container');
+  if (!propertiesPanel) {
+    console.error('Properties panel scroll container not found');
+    return;
+  }
+
+  // Remove existing space sections
+  const existingSection = propertiesPanel.querySelector('.space-properties-section');
+  if (existingSection) {
+    existingSection.remove();
+  }
+
+  // Get connection info using the XML service
+  const connectionInfo = this._messageFlowXmlService.getConnectionInfo(messageFlow);
+  
+  // Create the space section for message flow
+  const section = this.createMessageFlowSection(messageFlow, connectionInfo);
+  
+  // Insert after General section or at the beginning
+  const generalSection = propertiesPanel.querySelector('[data-group-id*="general"]');
+  if (generalSection && generalSection.nextSibling) {
+    propertiesPanel.insertBefore(section, generalSection.nextSibling);
+  } else {
+    propertiesPanel.insertBefore(section, propertiesPanel.firstChild);
+  }
+};
+
+/**
+ * Create the Space Properties section for message flow
+ */
+SpacePropertiesProvider.prototype.createMessageFlowSection = function(messageFlow, connectionInfo) {
+  const section = document.createElement('div');
+  section.className = 'bio-properties-panel-group space-properties-section';
+  section.setAttribute('data-group-id', 'group-space-properties');
+
+  const translate = this._translate;
+  const hasData = !!connectionInfo;
+  const isExpanded = hasData;
+
+  // Get participant names
+  const sourceParticipant = connectionInfo ? this._elementRegistry.get(connectionInfo.sourceRef) : null;
+  const targetParticipant = connectionInfo ? this._elementRegistry.get(connectionInfo.targetRef) : null;
+  const sourceName = sourceParticipant?.businessObject?.name || connectionInfo?.sourceRef || '';
+  const targetName = targetParticipant?.businessObject?.name || connectionInfo?.targetRef || '';
+
+ section.innerHTML = `
+  ${hasData ? `
+    <div class="bio-properties-panel-group-header ${isExpanded ? 'open' : ''}">
+      <div title="Space Properties" 
+           data-title="Space Properties" 
+           class="bio-properties-panel-group-header-title">
+        Space Properties
+      </div>
+      <div class="bio-properties-panel-group-header-buttons">
+        <div title="Section contains data" class="bio-properties-panel-dot"></div>
+        <button type="button" 
+                title="Toggle section" 
+                class="bio-properties-panel-group-header-button bio-properties-panel-arrow">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" 
+               class="${isExpanded ? 'bio-properties-panel-arrow-down' : 'bio-properties-panel-arrow-right'}">
+            <path fill-rule="evenodd" 
+                  d="m11.657 8-4.95 4.95a1 1 0 0 1-1.414-1.414L8.828 8 5.293 4.464A1 1 0 1 1 6.707 3.05L11.657 8Z">
+            </path>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="bio-properties-panel-group-entries ${isExpanded ? 'open' : ''}" style="${isExpanded ? '' : 'display: none;'}">
+
+      <!-- Connection Type Entry -->
+      <div data-entry-id="space-connection-type" class="bio-properties-panel-entry">
+        <div class="bio-properties-panel-textfield">
+          <label class="bio-properties-panel-label">${translate('Type')}</label>
+          <input type="text" 
+                 class="bio-properties-panel-input" 
+                 value="${connectionInfo.type}" 
+                 readonly
+                 style="background: #f8f9fa; cursor: default;" />
+        </div>
+      </div>
+
+      <!-- Source Reference Entry -->
+      <div data-entry-id="space-source-ref" class="bio-properties-panel-entry">
+        <div class="bio-properties-panel-textfield">
+          <label class="bio-properties-panel-label">${translate('Source Reference')}</label>
+          <input type="text" 
+                 class="bio-properties-panel-input" 
+                 value="${connectionInfo.sourceRef}" 
+                 readonly
+                 title="${sourceName}"
+                 style="background: #f8f9fa; cursor: default;" />
+          ${sourceName && sourceName !== connectionInfo.sourceRef ? 
+            `<small class="bio-properties-panel-description">${sourceName}</small>` : ''
+          }
+        </div>
+      </div>
+
+      <!-- Target Reference Entry -->
+      <div data-entry-id="space-target-ref" class="bio-properties-panel-entry">
+        <div class="bio-properties-panel-textfield">
+          <label class="bio-properties-panel-label">${translate('Target Reference')}</label>
+          <input type="text" 
+                 class="bio-properties-panel-input" 
+                 value="${connectionInfo.targetRef}" 
+                 readonly
+                 title="${targetName}"
+                 style="background: #f8f9fa; cursor: default;" />
+          ${targetName && targetName !== connectionInfo.targetRef ? 
+            `<small class="bio-properties-panel-description">${targetName}</small>` : ''
+          }
+        </div>
+      </div>
+
+    </div>
+  ` : ``}`;
+
+
+  // Attach toggle event listener
+  this.attachSectionEventListeners(section, messageFlow);
+
+  return section;
+};
 
 /**
  * Show environment configuration section when no task is selected
@@ -435,7 +572,7 @@ SpacePropertiesProvider.prototype.createSpaceSection = function(element) {
 
   const currentType = this._extensionService.getCurrentType(element);
   const translate = this._translate;
-  
+
   // Determine if section should be expanded (if there's a space configuration)
   const isExpanded = !!currentType;
   const hasData = !!currentType;
@@ -499,17 +636,6 @@ SpacePropertiesProvider.prototype.createSpaceSection = function(element) {
       <div data-entry-id="space-binding" 
            class="bio-properties-panel-entry space-binding-entry" 
            style="${currentType !== 'binding' ? 'display: none;' : ''}">
-        <div class="bio-properties-panel-textfield">
-          <label for="space-binding-input" class="bio-properties-panel-label">Participant</label>
-          <input id="space-binding-input" 
-                 type="text" 
-                 name="spaceBinding" 
-                 spellcheck="false" 
-                 autocomplete="off" 
-                 class="bio-properties-panel-input space-binding-input"
-                 placeholder="${translate('Enter participant ID')}"
-                 value="${this._extensionService.getBinding(element) || ''}" />
-        </div>
       </div>
     </div>
   `;
@@ -805,6 +931,8 @@ SpacePropertiesProvider.prototype.updateSectionIndicators = function(section, el
     statusDisplay.style.borderLeftColor = currentType ? '#4caf50' : '#ccc';
   }
 };
+
+
 
 SpacePropertiesProvider.prototype.refreshSpaceSection = function(element) {
   const existingSection = document.querySelector('.space-properties-section');

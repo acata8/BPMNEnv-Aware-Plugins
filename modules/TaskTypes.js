@@ -14,39 +14,36 @@ export const TASK_TYPES_CONFIG = {
     typeValue: "Movement",
     displayName: "Move to destination",
     icon: { class: "movement-badge", iconFile: movementIcon },
-    extensionElements: ["space:Destination"],
+    extensionElements: ["space:Type", "space:Destination"], // Keep Type
     defaultDestination: "${destination}",
-    validationRules: [], // Movement has no special validation rules
+    validationRules: [],
     formType: "destination"
   },
   [TASK_TYPE_KEYS.BINDING]: {
     key: TASK_TYPE_KEYS.BINDING, 
-    typeValue: "Bind",
-    displayName: "Bind",
+    typeValue: "Binding",
+    displayName: "Binding",
     icon: { class: "binding-badge", iconFile: bindIcon },
-    extensionElements: ["space:Binding"],
-    validationRules: [
-      "noDownstreamUnbinding" // Prevent changing FROM binding if unbinding exists downstream
-    ],
-    formType: "binding"
+    extensionElements: ["space:Type"], // KEEP Type for task identification
+    validationRules: [],
+    formType: "none" // No form - binding details in message flow
   },
   [TASK_TYPE_KEYS.UNBINDING]: {
     key: TASK_TYPE_KEYS.UNBINDING,
-    typeValue: "Unbind", 
-    displayName: "Unbind",
+    typeValue: "Unbinding", 
+    displayName: "Unbinding",
     icon: { class: "unbinding-badge", iconFile: unbindIcon },
-    extensionElements: [],
-    validationRules: [
-      "requiresUpstreamBinding" // Ensure there's a binding task upstream
-    ],
-    formType: "none"
+    extensionElements: ["space:Type"], // KEEP Type for task identification
+    validationRules: ["requiresUpstreamBinding"],
+    formType: "none" // No form - unbinding details in message flow
   }
 };
 
 export const EXTENSION_TYPES = {
   TYPE: "space:Type",
-  DESTINATION: "space:Destination", 
-  BINDING: "space:Binding"
+  DESTINATION: "space:Destination",
+  SOURCE_REF: "space:SourceRef",
+  TARGET_REF: "space:TargetRef"
 };
 
 // Validation rule definitions for clarity

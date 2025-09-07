@@ -86,3 +86,29 @@ span.menu-task:first-letter {
 .unbinding-badge {
   background-image: url("../icons/customTask/unbinding.svg");
 }
+
+/* Binding flow badges */
+.djs-overlay-binding-flow-badge {
+  z-index: 1000 !important;
+}
+
+.binding-flow-badge {
+  background: rgba(33, 150, 243, 0.9);
+  color: white;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 500;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(33, 150, 243, 1);
+  line-height: 1.2;
+}
+
+.binding-flow-text {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-family: system-ui, -apple-system, sans-serif;
+}

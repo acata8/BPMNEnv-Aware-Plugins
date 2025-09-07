@@ -19,7 +19,14 @@
       ]
     },
     {
-      "name": "Binding",
+      "name": "SourceRef",
+      "superClass": [ "Element" ],
+      "properties": [
+        { "name": "body", "isBody": true, "type": "String" }
+      ]
+    },
+    {
+      "name": "TargetRef",
       "superClass": [ "Element" ],
       "properties": [
         { "name": "body", "isBody": true, "type": "String" }

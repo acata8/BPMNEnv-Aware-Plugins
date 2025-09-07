@@ -1,0 +1,21 @@
+{
+  "name": "bpmn",
+  "uri": "http://www.omg.org/spec/BPMN/20100524/MODEL",
+  "prefix": "bpmn",
+  "xml": { "tagAlias": "lowerCase" },
+  "types": [],
+  "emumerations": [],
+  "associations": [],
+  "meta": {
+    "allowedIn": [ "*" ]
+  },
+  "moddleExtensions": {
+    "bpmn:MessageFlow": {
+      "superClass": [ "bpmn:MessageFlow" ],
+      "properties": [
+        { "name": "sourceBind", "isAttr": true, "type": "String" },
+        { "name": "targetBind", "isAttr": true, "type": "String" }
+      ]
+    }
+  }
+}
