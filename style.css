@@ -11,6 +11,7 @@
 @import url('./styles/environment.css');
 @import url('./styles/filedialog.css');
 @import url('./styles/detailsstyling.css'); 
+@import url('./styles/replacemenu.css');
 
 /* Enhanced foundation for native integration */
 :root {

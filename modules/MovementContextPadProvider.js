@@ -444,19 +444,19 @@ MovementContextPadProvider.prototype.getContextPadEntries = function(element) {
   const currentType = this.extensionService.getCurrentType(element);
   const entries = {};
 
-  // Always show the main type menu
-  entries["movement.open-type-menu"] = {
-    group: "edit",
-    className: "bpmn-icon-subprocess-collapsed",
-    title: this._translate("Set Type…"),
-    action: { click: () => this._openMenu(element) }
-  };
+  // // Always show the main type menu
+  // entries["movement.open-type-menu"] = {
+  //   group: "edit",
+  //   className: "bpmn-icon-subprocess-collapsed",
+  //   title: this._translate("Set Type…"),
+  //   action: { click: () => this._openMenu(element) }
+  // };
 
   // Only show edit for movement (destination) - not for binding/unbinding
   if (currentType === TASK_TYPE_KEYS.MOVEMENT) {
     entries["movement.edit-destination"] = {
       group: "edit",
-      className: "bpmn-icon-screw-wrench",
+      className: "movement-badge",
       title: this._translate("Edit destination"),
       action: { click: () => this._openDirectEditForm(element, "destination") }
     };
