@@ -19,14 +19,14 @@
       ]
     },
     {
-      "name": "SourceRef",
+      "name": "Participant1",
       "superClass": [ "Element" ],
       "properties": [
         { "name": "body", "isBody": true, "type": "String" }
       ]
     },
     {
-      "name": "TargetRef",
+      "name": "Participant2",
       "superClass": [ "Element" ],
       "properties": [
         { "name": "body", "isBody": true, "type": "String" }

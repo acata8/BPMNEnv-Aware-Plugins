@@ -30,13 +30,13 @@ MessageFlowXmlService.prototype.getConnectionType = function(messageFlow) {
 /**
  * Extract source reference (participant ID) from message flow
  */
-MessageFlowXmlService.prototype.getSourceRef = function(messageFlow) {
+MessageFlowXmlService.prototype.getParticipant1 = function(messageFlow) {
   if (!messageFlow?.businessObject?.extensionElements?.values) {
     return null;
   }
   
   const sourceRefElement = messageFlow.businessObject.extensionElements.values.find(
-    v => v.$type === EXTENSION_TYPES.SOURCE_REF
+    v => v.$type === EXTENSION_TYPES.PARTICIPANT1
   );
   
   return sourceRefElement?.body || null;
@@ -45,13 +45,13 @@ MessageFlowXmlService.prototype.getSourceRef = function(messageFlow) {
 /**
  * Extract target reference (participant ID) from message flow
  */
-MessageFlowXmlService.prototype.getTargetRef = function(messageFlow) {
+MessageFlowXmlService.prototype.getParticipant2 = function(messageFlow) {
   if (!messageFlow?.businessObject?.extensionElements?.values) {
     return null;
   }
   
   const targetRefElement = messageFlow.businessObject.extensionElements.values.find(
-    v => v.$type === EXTENSION_TYPES.TARGET_REF
+    v => v.$type === EXTENSION_TYPES.PARTICIPANT2
   );
   
   return targetRefElement?.body || null;
@@ -69,8 +69,8 @@ MessageFlowXmlService.prototype.getConnectionInfo = function(messageFlow) {
   
   return {
     type: type,
-    sourceRef: this.getSourceRef(messageFlow),
-    targetRef: this.getTargetRef(messageFlow),
+    participant1: this.getParticipant1(messageFlow),
+    participant2: this.getParticipant2(messageFlow),
     sourceTaskId: messageFlow.source?.id,
     targetTaskId: messageFlow.target?.id,
     connectionId: messageFlow.id
@@ -104,8 +104,8 @@ MessageFlowXmlService.prototype.areParticipantsBound = function(participant1Id, 
   const bindingFlows = this.getAllBindingFlows();
   
   return bindingFlows.some(flow => {
-    const sourceRef = this.getSourceRef(flow);
-    const targetRef = this.getTargetRef(flow);
+    const sourceRef = this.getParticipant1(flow);
+    const targetRef = this.getParticipant2(flow);
     
     return (sourceRef === participant1Id && targetRef === participant2Id) ||
            (sourceRef === participant2Id && targetRef === participant1Id);
@@ -119,8 +119,8 @@ MessageFlowXmlService.prototype.getFlowsForParticipant = function(participantId)
   return this._elementRegistry.filter(element => {
     if (element.type !== 'bpmn:MessageFlow') return false;
     
-    const sourceRef = this.getSourceRef(element);
-    const targetRef = this.getTargetRef(element);
+    const sourceRef = this.getParticipant1(element);
+    const targetRef = this.getParticipant2(element);
     
     return sourceRef === participantId || targetRef === participantId;
   });

@@ -42,8 +42,8 @@ export const TASK_TYPES_CONFIG = {
 export const EXTENSION_TYPES = {
   TYPE: "space:Type",
   DESTINATION: "space:Destination",
-  SOURCE_REF: "space:SourceRef",
-  TARGET_REF: "space:TargetRef"
+  PARTICIPANT1: "space:Participant1",
+  PARTICIPANT2: "space:Participant2"
 };
 
 // Validation rule definitions for clarity

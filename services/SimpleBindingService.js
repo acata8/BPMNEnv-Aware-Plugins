@@ -1,3 +1,6 @@
+import { EXTENSION_TYPES, TASK_TYPE_KEYS } from '../modules/TaskTypes';
+
+
 export function SimpleBindingService(elementRegistry, extensionService) {
   this._elementRegistry = elementRegistry;
   this._extensionService = extensionService;
@@ -19,12 +22,12 @@ SimpleBindingService.prototype.getConnectionInfo = function(connection) {
   const extensions = bo.extensionElements.values;
   
   // Find the type element
-  const typeElement = extensions.find(v => v.$type === 'space:Type');
+  const typeElement = extensions.find(v => v.$type === EXTENSION_TYPES.TYPE);
   if (!typeElement) return null;
   
   // Find source and target refs
-  const sourceRefElement = extensions.find(v => v.$type === 'space:SourceRef');
-  const targetRefElement = extensions.find(v => v.$type === 'space:TargetRef');
+  const sourceRefElement = extensions.find(v => v.$type === EXTENSION_TYPES.PARTICIPANT1);
+  const targetRefElement = extensions.find(v => v.$type === EXTENSION_TYPES.PARTICIPANT2);
   
   if (!sourceRefElement || !targetRefElement) return null;
   

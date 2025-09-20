@@ -118,10 +118,10 @@ SpacePropertiesProvider.prototype.createMessageFlowSection = function(messageFlo
   const isExpanded = hasData;
 
   // Get participant names
-  const sourceParticipant = connectionInfo ? this._elementRegistry.get(connectionInfo.sourceRef) : null;
-  const targetParticipant = connectionInfo ? this._elementRegistry.get(connectionInfo.targetRef) : null;
-  const sourceName = sourceParticipant?.businessObject?.name || connectionInfo?.sourceRef || '';
-  const targetName = targetParticipant?.businessObject?.name || connectionInfo?.targetRef || '';
+  const sourceParticipant = connectionInfo ? this._elementRegistry.get(connectionInfo.participant1) : null;
+  const targetParticipant = connectionInfo ? this._elementRegistry.get(connectionInfo.participant2) : null;
+  const sourceName = sourceParticipant?.businessObject?.name || connectionInfo?.participant1 || '';
+  const targetName = targetParticipant?.businessObject?.name || connectionInfo?.participant2 || '';
 
  section.innerHTML = `
   ${hasData ? `
@@ -163,32 +163,26 @@ SpacePropertiesProvider.prototype.createMessageFlowSection = function(messageFlo
       <!-- Source Reference Entry -->
       <div data-entry-id="space-source-ref" class="bio-properties-panel-entry">
         <div class="bio-properties-panel-textfield">
-          <label class="bio-properties-panel-label">${translate('Source Reference')}</label>
+          <label class="bio-properties-panel-label">${translate('Participant 1 reference')}</label>
           <input type="text" 
                  class="bio-properties-panel-input" 
-                 value="${connectionInfo.sourceRef}" 
+                 value="${connectionInfo.participant1}" 
                  readonly
                  title="${sourceName}"
                  style="background: #f8f9fa; cursor: default;" />
-          ${sourceName && sourceName !== connectionInfo.sourceRef ? 
-            `<small class="bio-properties-panel-description">${sourceName}</small>` : ''
-          }
         </div>
       </div>
 
       <!-- Target Reference Entry -->
       <div data-entry-id="space-target-ref" class="bio-properties-panel-entry">
         <div class="bio-properties-panel-textfield">
-          <label class="bio-properties-panel-label">${translate('Target Reference')}</label>
+          <label class="bio-properties-panel-label">${translate('Participant 2 reference')}</label>
           <input type="text" 
                  class="bio-properties-panel-input" 
-                 value="${connectionInfo.targetRef}" 
+                 value="${connectionInfo.participant2}" 
                  readonly
                  title="${targetName}"
                  style="background: #f8f9fa; cursor: default;" />
-          ${targetName && targetName !== connectionInfo.targetRef ? 
-            `<small class="bio-properties-panel-description">${targetName}</small>` : ''
-          }
         </div>
       </div>
 

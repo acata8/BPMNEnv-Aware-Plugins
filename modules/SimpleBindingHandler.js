@@ -126,8 +126,8 @@ SimpleBindingHandler.prototype.needsUpdate = function(connection) {
   
   // Get stored values
   const storedType = this.getStoredType(connection);
-  const storedSourceRef = this.getStoredSourceRef(connection);
-  const storedTargetRef = this.getStoredTargetRef(connection);
+  const storedSourceRef = this.getStoredParticipant1(connection);
+  const storedTargetRef = this.getStoredParticipant2(connection);
   
   // Get current values
   const currentType = this.determineConnectionType(connection);
@@ -207,11 +207,11 @@ SimpleBindingHandler.prototype.addConnectionData = function(connection, connecti
       body: connectionType
     });
     
-    const sourceRefElement = this._bpmnFactory.create(EXTENSION_TYPES.SOURCE_REF, {
+    const sourceRefElement = this._bpmnFactory.create(EXTENSION_TYPES.PARTICIPANT1, {
       body: sourceParticipantId
     });
     
-    const targetRefElement = this._bpmnFactory.create(EXTENSION_TYPES.TARGET_REF, {
+    const targetRefElement = this._bpmnFactory.create(EXTENSION_TYPES.PARTICIPANT2, {
       body: targetParticipantId
     });
     
@@ -263,16 +263,16 @@ SimpleBindingHandler.prototype.getStoredType = function(connection) {
   return typeElement?.body || null;
 };
 
-SimpleBindingHandler.prototype.getStoredSourceRef = function(connection) {
+SimpleBindingHandler.prototype.getStoredParticipant1 = function(connection) {
   const element = connection.businessObject?.extensionElements?.values?.find(
-    v => v.$type === EXTENSION_TYPES.SOURCE_REF
+    v => v.$type === EXTENSION_TYPES.PARTICIPANT1
   );
   return element?.body || null;
 };
 
-SimpleBindingHandler.prototype.getStoredTargetRef = function(connection) {
+SimpleBindingHandler.prototype.getStoredParticipant2 = function(connection) {
   const element = connection.businessObject?.extensionElements?.values?.find(
-    v => v.$type === EXTENSION_TYPES.TARGET_REF
+    v => v.$type === EXTENSION_TYPES.PARTICIPANT2
   );
   return element?.body || null;
 };
@@ -289,8 +289,8 @@ SimpleBindingHandler.prototype.clearConnectionData = function(businessObject) {
   
   businessObject.extensionElements.values = businessObject.extensionElements.values.filter(v => 
     v.$type !== EXTENSION_TYPES.TYPE && 
-    v.$type !== EXTENSION_TYPES.SOURCE_REF && 
-    v.$type !== EXTENSION_TYPES.TARGET_REF
+    v.$type !== EXTENSION_TYPES.PARTICIPANT1 && 
+    v.$type !== EXTENSION_TYPES.PARTICIPANT2
   );
 };
 

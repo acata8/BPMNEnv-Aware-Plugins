@@ -13,8 +13,9 @@
     "bpmn:MessageFlow": {
       "superClass": [ "bpmn:MessageFlow" ],
       "properties": [
-        { "name": "sourceBind", "isAttr": true, "type": "String" },
-        { "name": "targetBind", "isAttr": true, "type": "String" }
+        { "name": "type", "isAttr": true, "type": "String" },
+        { "name": "participant1", "isAttr": true, "type": "String" },
+        { "name": "participant2", "isAttr": true, "type": "String" }
       ]
     }
   }
