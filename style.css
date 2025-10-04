@@ -12,6 +12,7 @@
 @import url('./styles/filedialog.css');
 @import url('./styles/detailsstyling.css'); 
 @import url('./styles/replacemenu.css');
+@import url('./styles/assignments.css'); 
 
 /* Enhanced foundation for native integration */
 :root {

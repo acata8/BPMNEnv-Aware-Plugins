@@ -31,6 +31,20 @@
       "properties": [
         { "name": "body", "isBody": true, "type": "String" }
       ]
+    },
+    {
+      "name": "TaskAssignment",
+      "superClass": [ "Element" ],
+      "properties": [
+        { "name": "body", "isBody": true, "type": "String" }
+      ]
+    },
+    {
+      "name": "TaskAssignmentReached",
+      "superClass": [ "Element" ],
+      "properties": [
+        { "name": "body", "isBody": true, "type": "String" }
+      ]
     }
   ]
 }

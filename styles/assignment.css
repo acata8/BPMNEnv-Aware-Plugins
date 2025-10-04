@@ -1,0 +1,339 @@
+/* ============================================================================
+   Task Assignment Styles - Properties panel assignment UI
+   ============================================================================ */
+
+/* Assignments container */
+.bio-properties-panel-assignments {
+  width: 100%;
+}
+
+/* Assignments header with add button */
+.assignments-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.assignments-header .bio-properties-panel-label {
+  margin: 0;
+  font-weight: 600;
+  color: #333;
+}
+
+/* Add assignment button */
+.btn-add-assignment {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: #4caf50;
+  color: white;
+  border: 1px solid #4caf50;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.btn-add-assignment:hover {
+  background: #388e3c;
+  border-color: #388e3c;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(76, 175, 80, 0.3);
+}
+
+.btn-add-assignment:active {
+  transform: translateY(0);
+}
+
+.btn-add-assignment .add-icon {
+  font-size: 16px;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.btn-add-assignment .add-text {
+  font-size: 12px;
+}
+
+/* Assignments list */
+.assignments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+/* Individual assignment item */
+.assignment-item {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+  padding: 12px;
+  position: relative;
+}
+
+.assignment-item:hover {
+  border-color: #dee2e6;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* Assignment header */
+.assignment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.assignment-number {
+  font-weight: 600;
+  font-size: 12px;
+  color: #495057;
+}
+
+/* Remove button */
+.btn-remove-assignment {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 3px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  color: #666;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.btn-remove-assignment:hover {
+  background: #ffebee;
+  border-color: #f44336;
+  color: #d32f2f;
+}
+
+.btn-remove-assignment span {
+  display: block;
+  margin-top: -2px;
+}
+
+/* Assignment fields */
+.assignment-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.assignment-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.assignment-field .bio-properties-panel-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: #666;
+  margin: 0;
+}
+
+.assignment-field input {
+  width: 100% !important;
+  padding: 6px 8px !important;
+  border: 1px solid #cfcfcf !important;
+  border-radius: 3px !important;
+  font-size: 12px !important;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace !important;
+  background: white !important;
+  transition: all 0.2s ease !important;
+}
+
+.assignment-field input:focus {
+  outline: none !important;
+  border-color: #4caf50 !important;
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.1) !important;
+}
+
+.assignment-field input::placeholder {
+  color: #999;
+  font-style: italic;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+}
+
+/* Validation messages */
+.assignment-validation {
+  margin-top: 6px;
+  padding: 4px 6px;
+  background: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: 3px;
+  display: none;
+}
+
+.assignment-validation .validation-message {
+  font-size: 11px;
+  color: #856404;
+  display: block;
+}
+
+.assignment-validation.error {
+  background: #ffebee;
+  border-color: #f8bbd9;
+}
+
+.assignment-validation.error .validation-message {
+  color: #c62828;
+}
+
+/* No assignments message */
+.no-assignments-message {
+  padding: 16px;
+  text-align: center;
+  color: #6c757d;
+  font-style: italic;
+  background: #f8f9fa;
+  border: 1px dashed #dee2e6;
+  border-radius: 4px;
+  margin-bottom: 12px;
+}
+
+/* Assignments help section */
+.assignments-help {
+  padding: 8px 12px;
+  background: #e8f5e8;
+  border: 1px solid #c8e6c9;
+  border-radius: 4px;
+  font-size: 11px;
+  color: #2e7d32;
+}
+
+.assignments-help strong {
+  display: block;
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+
+/* Assignment count indicator (for section header) */
+.assignment-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  background: #4caf50;
+  color: white;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  margin-left: 6px;
+}
+
+.assignment-count-badge.empty {
+  background: #dee2e6;
+  color: #6c757d;
+}
+
+/* Animation for adding/removing assignments */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.assignment-item {
+  animation: slideIn 0.3s ease;
+}
+
+/* Focus states for accessibility */
+.btn-add-assignment:focus,
+.btn-remove-assignment:focus {
+  outline: 2px solid #4caf50;
+  outline-offset: 2px;
+}
+
+.btn-remove-assignment:focus {
+  outline-color: #f44336;
+}
+
+/* Responsive adjustments */
+@media (max-width: 300px) {
+  .assignments-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .btn-add-assignment {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .assignment-fields {
+    gap: 8px;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .assignment-item {
+    background: white;
+    border-color: black;
+  }
+  
+  .btn-add-assignment {
+    background: black;
+    color: white;
+    border-color: black;
+  }
+  
+  .btn-remove-assignment:hover {
+    background: white;
+    color: black;
+    border-color: black;
+  }
+}
+
+/* Print styles */
+@media print {
+  .btn-add-assignment,
+  .btn-remove-assignment {
+    display: none !important;
+  }
+  
+  .assignment-item {
+    background: white !important;
+    border: 1px solid #ccc !important;
+  }
+}
+
+/* Integration with existing properties panel */
+.space-assignments-entry {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e9ecef;
+}
+
+/* Visual separator for assignments section */
+.space-assignments-entry::before {
+  content: '';
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #e0e0e0 20%, #e0e0e0 80%, transparent);
+}
