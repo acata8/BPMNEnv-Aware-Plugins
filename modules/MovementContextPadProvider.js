@@ -42,7 +42,7 @@ class FormHandlers {
         </button>
       </div>
       
-      ${hasEnvConfig ? this._renderEnvironmentDestinationForm(displayValue, currentValue, availablePlaces, translate) : this._renderManualDestinationForm(currentValue, config, translate)}
+      ${this._renderEnvironmentDestinationForm(displayValue, currentValue, availablePlaces, translate)}
       
       <div class="actions">
         <button type="button" class="btn-save">${translate("Save")}</button>
@@ -85,11 +85,11 @@ class FormHandlers {
         <label class="form-label">${translate("Destination")}</label>
         <div class="autocomplete-container">
           <input type="text" 
-                 class="form-input destination-autocomplete" 
-                 placeholder="${translate("Type to search places...")}" 
-                 value="${displayValue || ''}"
-                 autocomplete="off"
-                 spellcheck="false" />
+                class="form-input destination-autocomplete" 
+                placeholder="${translate("Type to search places...")}" 
+                value="${displayValue || ''}"
+                autocomplete="off"
+                spellcheck="false" />
           <div class="autocomplete-dropdown"></div>
         </div>
       </div>

@@ -9,6 +9,7 @@
     "dev": "webpack --watch --mode=development"
   },
   "dependencies": {
+    "bpenv-modeler": "^0.0.17",
     "camunda-modeler-plugin-helpers": "^5.0.0"
   },
   "devDependencies": {

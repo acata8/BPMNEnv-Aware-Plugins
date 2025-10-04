@@ -4,8 +4,8 @@ import {
 } from 'camunda-modeler-plugin-helpers';
 
 import spaceModdle from './space-moddle.json';
+import bpenvModeler from 'bpenv-modeler';
 
-// Existing modules
 import TypedPaletteProvider from './modules/TypedPaletteProvider';
 import TypedOverlay from './modules/TypedOverlay';
 import MovementContextPadProvider from './modules/MovementContextPadProvider';
@@ -14,8 +14,14 @@ import ServicesModule from './services/ServicesModule';
 import SimpleBindingHandler from './modules/SimpleBindingHandler';
 import { SimpleBindingService } from './services/SimpleBindingService';
 
-// NEW: Add the Custom Replace Provider
+
 import CustomReplaceProvider from './modules/CustomReplaceProvider';
+
+const LibrariesModule = {
+  __init__: [],
+  bpenvModeler: ['value', bpenvModeler]
+};
+
 
 // Create simple binding module bundle
 const SimpleBindingModule = {
@@ -27,7 +33,7 @@ const SimpleBindingModule = {
 // Register moddle extension
 registerBpmnJSModdleExtension(spaceModdle);
 
-// Register all plugin modules
+registerBpmnJSPlugin(LibrariesModule);
 registerBpmnJSPlugin(ServicesModule);
 registerBpmnJSPlugin(TypedOverlay);
 registerBpmnJSPlugin(MovementContextPadProvider);

@@ -225,9 +225,6 @@ SpacePropertiesProvider.prototype.showEnvironmentSection = function() {
   propertiesPanel.insertBefore(envSection, propertiesPanel.firstChild);
 };
 
-/**
- * Create environment configuration section
- */
 SpacePropertiesProvider.prototype.createEnvironmentSection = function() {
   const section = document.createElement('div');
   section.className = 'bio-properties-panel-group space-properties-section';
@@ -237,21 +234,16 @@ SpacePropertiesProvider.prototype.createEnvironmentSection = function() {
   const hasConfig = this._environmentService.hasConfiguration();
   const configSummary = hasConfig ? this._environmentService.getConfigSummary() : null;
   
-  // Section should be expanded if there's configuration
   const isExpanded = hasConfig;
 
-  // The svg is the small round icon (•) on the group
   section.innerHTML = `
-    <!-- Section Header -->
     <div class="bio-properties-panel-group-header ${isExpanded ? 'open' : ''} ${hasConfig ? '' : 'empty'}">
       <div title="Environment Configuration" data-title="Environment Configuration" class="bio-properties-panel-group-header-title">
           Environment Configuration
       </div>
       <div class="bio-properties-panel-group-header-buttons">
         ${hasConfig ? '<div title="Environment loaded" class="bio-properties-panel-dot"></div>' : ''}
-        <button type="button" 
-                title="Toggle section" 
-                class="bio-properties-panel-group-header-button bio-properties-panel-arrow">
+        <button type="button" title="Toggle section" class="bio-properties-panel-group-header-button bio-properties-panel-arrow">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" class="${isExpanded ? 'bio-properties-panel-arrow-down' : 'bio-properties-panel-arrow-right'}">
             <path fill-rule="evenodd" d="m11.657 8-4.95 4.95a1 1 0 0 1-1.414-1.414L8.828 8 5.293 4.464A1 1 0 1 1 6.707 3.05L11.657 8Z"></path>
           </svg>
@@ -259,12 +251,10 @@ SpacePropertiesProvider.prototype.createEnvironmentSection = function() {
       </div>
     </div>
 
-    <!-- Section Entries -->
     <div class="bio-properties-panel-group-entries ${isExpanded ? 'open' : ''}" style="${isExpanded ? '' : 'display: none;'}">
       
-      <!-- File Upload Entry -->
-      ${hasConfig == false ?
-      `<div data-entry-id="env-file-upload" class="bio-properties-panel-entry">
+      <!-- ALWAYS SHOW - Load button for new physical places -->
+      <div data-entry-id="env-file-upload" class="bio-properties-panel-entry">
         <div class="bio-properties-panel-textfield">
           <label class="bio-properties-panel-label">${translate('Environment File')}</label>
           <div class="env-file-input-container">
@@ -272,24 +262,16 @@ SpacePropertiesProvider.prototype.createEnvironmentSection = function() {
                     style="text-align: left; cursor: pointer; display: flex; align-items: center; gap: 8px;">
               <span class="file-text">${translate('Load environment.json')}</span>
             </button>
-            <input type="file" 
-                   accept=".json" 
-                   class="env-file-input" 
-                   style="display: none;" />
+            <input type="file" accept=".json" class="env-file-input" style="display: none;" />
           </div>
           <small class="bio-properties-panel-description">
-            ${hasConfig 
-              ? translate('Replace the current environment with a different file')
-              : translate('Load environment.json to configure available places and destinations')
-            }
+            ${translate('Load environment.json to add physical places to the modeler')}
           </small>
         </div>
-      </div>`
-      : `` }
+      </div>
 
       ${hasConfig ? this.renderConfigurationDetails(configSummary) : ''}
        
-      <!-- Clear Configuration Button (only if config loaded) -->
       ${hasConfig ? `
       <div data-entry-id="env-clear-config" class="bio-properties-panel-entry">
         <div class="bio-properties-panel-textfield">
@@ -304,9 +286,7 @@ SpacePropertiesProvider.prototype.createEnvironmentSection = function() {
     </div>
   `;
 
-  // Attach event listeners
   this.attachEnvironmentEventListeners(section);
-
   return section;
 };
 
@@ -315,7 +295,7 @@ SpacePropertiesProvider.prototype.createEnvironmentSection = function() {
  */
 SpacePropertiesProvider.prototype.renderConfigurationDetails = function(configSummary) {
   const translate = this._translate;
-  
+  console.log('CONFIG SUMMARY:', configSummary.summary);
   return `
     <!-- Configuration Details Entry -->
     <div data-entry-id="env-config-details" class="bio-properties-panel-entry">
@@ -324,7 +304,7 @@ SpacePropertiesProvider.prototype.renderConfigurationDetails = function(configSu
         <div class="env-config-details">
           <div class="config-metric">
             <span class="metric-label">${translate('Places')}:</span>
-            <span class="metric-value">${configSummary.summary.places}</span>
+            <span class="metric-value">${configSummary.summary.physicalPlaces}</span>
           </div>
           <div class="config-metric">
             <span class="metric-label">${translate('Logical Places')}:</span>
@@ -648,20 +628,17 @@ SpacePropertiesProvider.prototype.renderDestinationAttributes = function(element
   if (!hasEnvironment || !destination) {
     return '';
   }
-  // Find the place by id
-  const place = this._environmentService.findPlaceById(destination);
-  if(!place)
-    return ``;
 
-  // if (!place) {
-  //   return `
-  //     <div class="destination-attributes destination-not-found">
-  //       <small class="bio-properties-panel-description">
-  //         <span style="color: #f57c00;">${translate('Destination not found in environment')}</span>
-  //       </small>
-  //     </div>
-  //   `;
-  // }
+  const place = this._environmentService.findPlaceById(destination);
+  if (!place) {
+    return `
+      <div class="destination-attributes destination-not-found">
+        <small class="bio-properties-panel-description">
+          <span style="color: #f57c00;">${translate('Destination not found in environment')}</span>
+        </small>
+      </div>
+    `;
+  }
 
   // Render place attributes
   const attributes = place.attributes || {};
@@ -709,7 +686,7 @@ SpacePropertiesProvider.prototype.renderDestinationAttributes = function(element
   }).join('');
 
   return `
-  <div class="destination-attributes destination-found">
+    <div class="destination-attributes destination-found">
       <small class="bio-properties-panel-description">
         <span>${translate('Destination attributes')}</span>
       </small>
@@ -720,7 +697,7 @@ SpacePropertiesProvider.prototype.renderDestinationAttributes = function(element
       </div>
     </div>
   `;
-};
+}
 
 SpacePropertiesProvider.prototype.attachSectionEventListeners = function(section, element) {
   // Toggle section expand/collapse
