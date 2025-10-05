@@ -1,41 +1,45 @@
 import { getTaskConfig, getAllTaskTypes, TASK_TYPE_KEYS } from './TaskTypes';
 
 function SpacePropertiesProvider(
-  eventBus, 
-  translate,
-  extensionService,
-  taskTypeService,
-  environmentService,
-  messageFlowXmlService, 
-  elementRegistry
+    eventBus,
+    translate,
+    extensionService,
+    taskTypeService,
+    environmentService,
+    messageFlowXmlService,
+    elementRegistry,
+    assignmentService
 ) {
   this._eventBus = eventBus;
   this._translate = translate;
   this._extensionService = extensionService;
   this._taskTypeService = taskTypeService;
   this._environmentService = environmentService;
-  this._messageFlowXmlService = messageFlowXmlService;  
+  this._messageFlowXmlService = messageFlowXmlService;
   this._elementRegistry = elementRegistry;
-
+  this._assignmentService = assignmentService;
 
   console.info('SpacePropertiesProvider initialized');
 
   eventBus.on('selection.changed', (event) => {
     if (event.newSelection && event.newSelection.length === 1) {
       const element = event.newSelection[0];
-      
-        if (element.type === 'bpmn:Task') {
-          setTimeout(() => this.createStandaloneSpaceSection(element), 200);
-        } else if (element.type === 'bpmn:MessageFlow') {
-          // Show binding info for connections
-          setTimeout(() => this.createMessageFlowSpaceSection(element), 200);
-        } else {
-          setTimeout(() => this.showEnvironmentSection(), 200);
-        }
+
+      if (element.type === 'bpmn:Task') {
+        setTimeout(() => this.createStandaloneSpaceSection(element), 200);
+      } else if (element.type === 'bpmn:MessageFlow') {
+
+        // Show binding info for connections
+        setTimeout(() => this.createMessageFlowSpaceSection(element), 200);
+      } else {
+        setTimeout(() => this.showEnvironmentSection(), 200);
+      }
     } else if (event.newSelection && event.newSelection.length === 0) {
+
       // No selection - show environment configuration section
       setTimeout(() => this.showEnvironmentSection(), 200);
     }
+
     // Do nothing for multiple selections
   });
 
@@ -70,8 +74,9 @@ SpacePropertiesProvider.$inject = [
   'extensionService',
   'taskTypeService',
   'environmentService',
-  'messageFlowXmlService',  
-  'elementRegistry'
+  'messageFlowXmlService',
+  'elementRegistry',
+  'assignmentService'
 ];
 
 /**
@@ -92,10 +97,10 @@ SpacePropertiesProvider.prototype.createMessageFlowSpaceSection = function(messa
 
   // Get connection info using the XML service
   const connectionInfo = this._messageFlowXmlService.getConnectionInfo(messageFlow);
-  
+
   // Create the space section for message flow
   const section = this.createMessageFlowSection(messageFlow, connectionInfo);
-  
+
   // Insert after General section or at the beginning
   const generalSection = propertiesPanel.querySelector('[data-group-id*="general"]');
   if (generalSection && generalSection.nextSibling) {
@@ -123,13 +128,13 @@ SpacePropertiesProvider.prototype.createMessageFlowSection = function(messageFlo
   const sourceName = sourceParticipant?.businessObject?.name || connectionInfo?.participant1 || '';
   const targetName = targetParticipant?.businessObject?.name || connectionInfo?.participant2 || '';
 
- section.innerHTML = `
+  section.innerHTML = `
   ${hasData ? `
     <div class="bio-properties-panel-group-header ${isExpanded ? 'open' : ''}">
       <div title="Space Properties" 
            data-title="Space Properties" 
            class="bio-properties-panel-group-header-title">
-        Space Properties
+        Space Properties 
       </div>
       <div class="bio-properties-panel-group-header-buttons">
         <div title="Section contains data" class="bio-properties-panel-dot"></div>
@@ -147,7 +152,6 @@ SpacePropertiesProvider.prototype.createMessageFlowSection = function(messageFlo
     </div>
 
     <div class="bio-properties-panel-group-entries ${isExpanded ? 'open' : ''}" style="${isExpanded ? '' : 'display: none;'}">
-
       <!-- Connection Type Entry -->
       <div data-entry-id="space-connection-type" class="bio-properties-panel-entry">
         <div class="bio-properties-panel-textfield">
@@ -185,10 +189,8 @@ SpacePropertiesProvider.prototype.createMessageFlowSection = function(messageFlo
                  style="background: #f8f9fa; cursor: default;" />
         </div>
       </div>
-
     </div>
-  ` : ``}`;
-
+  ` : ''}`;
 
   // Attach toggle event listener
   this.attachSectionEventListeners(section, messageFlow);
@@ -220,7 +222,7 @@ SpacePropertiesProvider.prototype.showEnvironmentSection = function() {
 
   // Create the environment configuration section
   const envSection = this.createEnvironmentSection();
-  
+
   // Insert at the beginning
   propertiesPanel.insertBefore(envSection, propertiesPanel.firstChild);
 };
@@ -233,7 +235,7 @@ SpacePropertiesProvider.prototype.createEnvironmentSection = function() {
   const translate = this._translate;
   const hasConfig = this._environmentService.hasConfiguration();
   const configSummary = hasConfig ? this._environmentService.getConfigSummary() : null;
-  
+
   const isExpanded = hasConfig;
 
   section.innerHTML = `
@@ -336,6 +338,7 @@ SpacePropertiesProvider.prototype.renderConfigurationDetails = function(configSu
  * Attach event listeners to environment section
  */
 SpacePropertiesProvider.prototype.attachEnvironmentEventListeners = function(section) {
+
   // Toggle section expand/collapse
   const toggleButton = section.querySelector('.bio-properties-panel-group-header-button');
   const header = section.querySelector('.bio-properties-panel-group-header');
@@ -344,24 +347,26 @@ SpacePropertiesProvider.prototype.attachEnvironmentEventListeners = function(sec
   if (toggleButton && header && entries) {
     toggleButton.addEventListener('click', () => {
       const isOpen = header.classList.contains('open');
-      
+
       if (isOpen) {
+
         // Close section
         header.classList.remove('open');
         entries.classList.remove('open');
         entries.style.display = 'none';
-        
+
         const arrow = toggleButton.querySelector('svg');
         if (arrow) {
           arrow.classList.remove('bio-properties-panel-arrow-down');
           arrow.classList.add('bio-properties-panel-arrow-right');
         }
       } else {
+
         // Open section
         header.classList.add('open');
         entries.classList.add('open');
         entries.style.display = 'block';
-        
+
         const arrow = toggleButton.querySelector('svg');
         if (arrow) {
           arrow.classList.remove('bio-properties-panel-arrow-right');
@@ -401,6 +406,7 @@ SpacePropertiesProvider.prototype.attachEnvironmentEventListeners = function(sec
  * Handle file loading (manual upload)
  */
 SpacePropertiesProvider.prototype.handleFileLoad = function(file, section) {
+
   // Validate file type
   if (!file.name.toLowerCase().endsWith('.json')) {
     this.showFileError(section, this._translate('Please select a JSON file'));
@@ -417,7 +423,8 @@ SpacePropertiesProvider.prototype.handleFileLoad = function(file, section) {
 /**
  * Handle clear configuration
  */
-SpacePropertiesProvider.prototype.handleClearConfiguration = function(section) {  
+SpacePropertiesProvider.prototype.handleClearConfiguration = function(section) {
+
   // Confirm with user
   if (confirm(this._translate('Are you sure you want to clear the environment configuration?'))) {
     this._environmentService.clearConfiguration();
@@ -433,7 +440,7 @@ SpacePropertiesProvider.prototype.handleManualLoadResult = function(event) {
   if (!section) return;
 
   if (event.success) {
-      this.refreshEnvironmentSection();
+    this.refreshEnvironmentSection();
   } else {
     this.showFileError(section, event.error || this._translate('Unknown error occurred'));
   }
@@ -479,7 +486,7 @@ SpacePropertiesProvider.prototype.showFileError = function(section, message) {
       <span class="file-text">${message}</span>
     `;
     button.style.color = '#d32f2f';
-    
+
     setTimeout(() => {
       const hasConfig = this._environmentService.hasConfiguration();
       button.innerHTML = `
@@ -495,10 +502,12 @@ SpacePropertiesProvider.prototype.showFileError = function(section, message) {
 /**
  * Refresh environment section
  */
-SpacePropertiesProvider.prototype.refreshEnvironmentSection = function() {  
+SpacePropertiesProvider.prototype.refreshEnvironmentSection = function() {
+
   // Check if we're currently showing an environment section
   const existingSection = document.querySelector('.space-properties-section[data-group-id="group-environment-config"]');
   if (existingSection) {
+
     // Force refresh by removing and recreating
     existingSection.remove();
     this.showEnvironmentSection();
@@ -514,7 +523,6 @@ SpacePropertiesProvider.prototype.hideSpaceSection = function() {
 };
 
 SpacePropertiesProvider.prototype.createStandaloneSpaceSection = function(element) {
-  
   const propertiesPanel = document.querySelector('.bio-properties-panel-scroll-container');
   if (!propertiesPanel) {
     return;
@@ -528,17 +536,19 @@ SpacePropertiesProvider.prototype.createStandaloneSpaceSection = function(elemen
 
   // Create the standalone space section
   const spaceSection = this.createSpaceSection(element);
-  
+
   // Insert after General section (usually the first section)
   const generalSection = propertiesPanel.querySelector('[data-group-id*="general"]');
   if (generalSection && generalSection.nextSibling) {
     propertiesPanel.insertBefore(spaceSection, generalSection.nextSibling);
   } else {
+
     // Fallback: add at the beginning
     propertiesPanel.insertBefore(spaceSection, propertiesPanel.firstChild);
   }
 };
 
+// FIXED: Removed the double 'S' typo here
 SpacePropertiesProvider.prototype.createSpaceSection = function(element) {
   const section = document.createElement('div');
   section.className = 'bio-properties-panel-group space-properties-section';
@@ -547,7 +557,9 @@ SpacePropertiesProvider.prototype.createSpaceSection = function(element) {
   const currentType = this._extensionService.getCurrentType(element);
   const translate = this._translate;
 
-  // Determine if section should be expanded (if there's a space configuration)
+  // NEW: Get assignment count for badge
+  const assignmentCount = this._assignmentService.getAssignmentCount(element);
+
   const isExpanded = !!currentType;
   const hasData = !!currentType;
 
@@ -557,6 +569,7 @@ SpacePropertiesProvider.prototype.createSpaceSection = function(element) {
            data-title="Space Properties" 
            class="bio-properties-panel-group-header-title">
           Space Properties
+          ${assignmentCount > 0 ? `<span class="assignment-count-badge">${assignmentCount}</span>` : ''}
       </div>
       <div class="bio-properties-panel-group-header-buttons">
         ${hasData ? '<div title="Section contains data" class="bio-properties-panel-dot"></div>' : ''}
@@ -570,7 +583,6 @@ SpacePropertiesProvider.prototype.createSpaceSection = function(element) {
       </div>
     </div>
 
-    <!-- Section Entries (matches native style) -->
     <div class="bio-properties-panel-group-entries ${isExpanded ? 'open' : ''}" style="${isExpanded ? '' : 'display: none;'}">
       
       <!-- Task Type Entry -->
@@ -581,9 +593,9 @@ SpacePropertiesProvider.prototype.createSpaceSection = function(element) {
                   name="spaceType" 
                   class="bio-properties-panel-input space-type-select">
             <option value="">(None)</option>
-            ${getAllTaskTypes().map(config => 
-              `<option value="${config.key}" ${config.key === currentType ? 'selected' : ''}>${translate(config.typeValue)}</option>`
-            ).join('')}
+            ${getAllTaskTypes().map(config =>
+    `<option value="${config.key}" ${config.key === currentType ? 'selected' : ''}>${translate(config.typeValue)}</option>`
+  ).join('')}
           </select>
         </div>
       </div>
@@ -611,20 +623,105 @@ SpacePropertiesProvider.prototype.createSpaceSection = function(element) {
            class="bio-properties-panel-entry space-binding-entry" 
            style="${currentType !== 'binding' ? 'display: none;' : ''}">
       </div>
+      
+      <!-- NEW: Task Assignments Section (shown for all task types) -->
+      ${currentType ? this.renderTaskAssignments(element) : ''}
+      
     </div>
   `;
 
-  // Attach event listeners
   this.attachSectionEventListeners(section, element);
 
   return section;
+};
+
+SpacePropertiesProvider.prototype.renderTaskAssignments = function(element) {
+  const translate = this._translate;
+  const assignments = this._assignmentService.getAssignments(element);
+
+  const assignmentItems = assignments.map((assignment, index) => `
+    <div class="assignment-item" data-assignment-index="${index}">
+      <div class="assignment-header">
+        <span class="assignment-number">${translate('Assignment')} ${index + 1}</span>
+        <button type="button" class="btn-remove-assignment" data-index="${index}" title="${translate('Remove assignment')}">
+          <span>×</span>
+        </button>
+      </div>
+      
+      <div class="assignment-fields">
+        <div class="assignment-field">
+          <label class="bio-properties-panel-label">${translate('Starting Condition')}</label>
+          <input type="text" 
+                 class="bio-properties-panel-input assignment-condition" 
+                 data-index="${index}"
+                 placeholder="${translate('e.g., place1.temperature > 25')}"
+                 value="${this.escapeHtml(assignment.condition || '')}" />
+          <small class="bio-properties-panel-description">
+            ${translate('Condition that triggers this assignment')}
+          </small>
+        </div>
+        
+        <div class="assignment-field">
+          <label class="bio-properties-panel-label">${translate('Value to Assign')}</label>
+          <input type="text" 
+                 class="bio-properties-panel-input assignment-value" 
+                 data-index="${index}"
+                 placeholder="${translate('e.g., place1.light = off')}"
+                 value="${this.escapeHtml(assignment.value || '')}" />
+          <small class="bio-properties-panel-description">
+            ${translate('New value to set when condition is met')}
+          </small>
+        </div>
+      </div>
+      
+      <div class="assignment-validation" style="display: none;">
+        <span class="validation-message"></span>
+      </div>
+    </div>
+  `).join('');
+
+  return `
+    <!-- Task Assignments Entry -->
+    <div data-entry-id="space-assignments" class="bio-properties-panel-entry space-assignments-entry">
+      <div class="bio-properties-panel-assignments">
+        <div class="assignments-header">
+          <label class="bio-properties-panel-label">${translate('Task Assignments')}</label>
+          <button type="button" class="btn-add-assignment" title="${translate('Add assignment')}">
+            <span class="add-icon">+</span>
+            <span class="add-text">${translate('Add')}</span>
+          </button>
+        </div>
+        
+        ${assignments.length === 0 ? `
+          <div class="no-assignments-message">
+            <small class="bio-properties-panel-description">
+              ${translate('No assignments configured. Click "Add" to create one.')}
+            </small>
+          </div>
+        ` : ''}
+        
+        <div class="assignments-list">
+          ${assignmentItems}
+        </div>
+        
+        <div class="assignments-help">
+          <small class="bio-properties-panel-description">
+            <strong>${translate('Example formats:')}</strong><br>
+            ${translate('Condition')}: place1.temperature > 20<br>
+            ${translate('Assignment')}: place1.light = off<br>
+            ${translate('Multiple assignments can be added to set different attributes')}
+          </small>
+        </div>
+      </div>
+    </div>
+  `;
 };
 
 SpacePropertiesProvider.prototype.renderDestinationAttributes = function(element) {
   const destination = this._extensionService.getDestination(element);
   const hasEnvironment = this._environmentService.hasConfiguration();
   const translate = this._translate;
-  
+
   if (!hasEnvironment || !destination) {
     return '';
   }
@@ -643,7 +740,7 @@ SpacePropertiesProvider.prototype.renderDestinationAttributes = function(element
   // Render place attributes
   const attributes = place.attributes || {};
   const attributeKeys = Object.keys(attributes);
-  
+
   if (attributeKeys.length === 0) {
     return `
       <div class="destination-attributes destination-no-attributes">
@@ -659,7 +756,7 @@ SpacePropertiesProvider.prototype.renderDestinationAttributes = function(element
     const value = attributes[key];
     let displayValue = value;
     let valueClass = 'attribute-value';
-    
+
     // Special formatting for certain attribute types
     if (key === 'freeSeats') {
       if (value === 0) {
@@ -676,7 +773,7 @@ SpacePropertiesProvider.prototype.renderDestinationAttributes = function(element
       valueClass = 'attribute-value attribute-value-purpose';
       displayValue = value.charAt(0).toUpperCase() + value.slice(1);
     }
-    
+
     return `
       <div class="attribute-item">
         <span class="attribute-key">${translate(key)}:</span>
@@ -697,9 +794,10 @@ SpacePropertiesProvider.prototype.renderDestinationAttributes = function(element
       </div>
     </div>
   `;
-}
+};
 
 SpacePropertiesProvider.prototype.attachSectionEventListeners = function(section, element) {
+
   // Toggle section expand/collapse
   const toggleButton = section.querySelector('.bio-properties-panel-group-header-button');
   const header = section.querySelector('.bio-properties-panel-group-header');
@@ -708,31 +806,32 @@ SpacePropertiesProvider.prototype.attachSectionEventListeners = function(section
   if (toggleButton && header && entries) {
     toggleButton.addEventListener('click', () => {
       const isOpen = header.classList.contains('open');
-      
+
       if (isOpen) {
+
         // Close section
         header.classList.remove('open');
         entries.classList.remove('open');
         entries.style.display = 'none';
-        
+
         const arrow = toggleButton.querySelector('svg');
         if (arrow) {
           arrow.classList.remove('bio-properties-panel-arrow-down');
           arrow.classList.add('bio-properties-panel-arrow-right');
         }
       } else {
+
         // Open section
         header.classList.add('open');
         entries.classList.add('open');
         entries.style.display = 'block';
-        
+
         const arrow = toggleButton.querySelector('svg');
         if (arrow) {
           arrow.classList.remove('bio-properties-panel-arrow-right');
           arrow.classList.add('bio-properties-panel-arrow-down');
         }
       }
-      
     });
   }
 
@@ -741,12 +840,12 @@ SpacePropertiesProvider.prototype.attachSectionEventListeners = function(section
   const destinationInput = section.querySelector('.space-destination-input');
   const bindingInput = section.querySelector('.space-binding-input');
 
-  // Type selection 
+  // Type selection
   if (typeSelect) {
     typeSelect.addEventListener('change', (e) => {
       try {
         const newType = e.target.value;
-        
+
         if (newType) {
           this._taskTypeService.setTaskType(element, newType);
         } else {
@@ -765,18 +864,17 @@ SpacePropertiesProvider.prototype.attachSectionEventListeners = function(section
 
   // Destination input - save on change AND refresh attributes
   if (destinationInput) {
-    ['input', 'blur', 'change'].forEach(eventType => {
-      destinationInput.addEventListener(eventType, (e) => {        
+    [ 'input', 'blur', 'change' ].forEach(eventType => {
+      destinationInput.addEventListener(eventType, (e) => {
         try {
           const value = e.target.value.trim();
           if (value) {
             this._extensionService.setExtension(element, 'space:Destination', value);
           }
-          
+
           this.updateSectionIndicators(section, element);
-          
           this.updateDestinationAttributes(section, element);
-          
+
         } catch (error) {
           console.error('Error saving destination:', error);
         }
@@ -786,22 +884,152 @@ SpacePropertiesProvider.prototype.attachSectionEventListeners = function(section
 
   // Binding input - save on change
   if (bindingInput) {
-    ['input', 'blur', 'change'].forEach(eventType => {
-      bindingInput.addEventListener(eventType, (e) => {        
+    [ 'input', 'blur', 'change' ].forEach(eventType => {
+      bindingInput.addEventListener(eventType, (e) => {
         try {
           const value = e.target.value.trim();
           if (value) {
             this._extensionService.setExtension(element, 'space:Binding', value);
           }
-          
+
           this.updateSectionIndicators(section, element);
-          
+
         } catch (error) {
           console.error('Error saving binding:', error);
         }
       });
     });
   }
+
+  this.attachAssignmentListeners(section, element);
+};
+
+SpacePropertiesProvider.prototype.attachAssignmentListeners = function(section, element) {
+  const translate = this._translate;
+
+  const addButton = section.querySelector('.btn-add-assignment');
+  if (addButton) {
+    addButton.addEventListener('click', () => {
+      this._assignmentService.addAssignment(element, '', '');
+      this.refreshAssignmentsSection(section, element);
+
+      setTimeout(() => {
+        const newAssignments = section.querySelectorAll('.assignment-item');
+        const lastAssignment = newAssignments[newAssignments.length - 1];
+        const conditionInput = lastAssignment?.querySelector('.assignment-condition');
+        if (conditionInput) {
+          conditionInput.focus();
+        }
+      }, 100);
+    });
+  }
+
+  section.querySelectorAll('.btn-remove-assignment').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const index = parseInt(e.currentTarget.getAttribute('data-index'));
+
+      const assignments = this._assignmentService.getAssignments(element);
+      const assignment = assignments[index];
+
+      if (assignment && (assignment.condition || assignment.value)) {
+        if (!confirm(translate('Remove this assignment?'))) {
+          return;
+        }
+      }
+
+      this._assignmentService.removeAssignment(element, index);
+      this.refreshAssignmentsSection(section, element);
+      this.updateSectionIndicators(section, element);
+    });
+  });
+
+  section.querySelectorAll('.assignment-condition').forEach(input => {
+    const index = parseInt(input.getAttribute('data-index'));
+
+    [ 'blur', 'change' ].forEach(eventType => {
+      input.addEventListener(eventType, (e) => {
+        const assignments = this._assignmentService.getAssignments(element);
+        const assignment = assignments[index];
+        if (assignment) {
+          this._assignmentService.updateAssignment(
+            element,
+            index,
+            e.target.value.trim(),
+            assignment.value
+          );
+          this.validateAssignmentField(input, e.target.value.trim(), 'condition');
+        }
+      });
+    });
+
+    input.addEventListener('input', (e) => {
+      this.validateAssignmentField(input, e.target.value.trim(), 'condition');
+    });
+  });
+
+  section.querySelectorAll('.assignment-value').forEach(input => {
+    const index = parseInt(input.getAttribute('data-index'));
+
+    [ 'blur', 'change' ].forEach(eventType => {
+      input.addEventListener(eventType, (e) => {
+        const assignments = this._assignmentService.getAssignments(element);
+        const assignment = assignments[index];
+        if (assignment) {
+          this._assignmentService.updateAssignment(
+            element,
+            index,
+            assignment.condition,
+            e.target.value.trim()
+          );
+          this.validateAssignmentField(input, e.target.value.trim(), 'value');
+        }
+      });
+    });
+
+    input.addEventListener('input', (e) => {
+      this.validateAssignmentField(input, e.target.value.trim(), 'value');
+    });
+  });
+};
+
+SpacePropertiesProvider.prototype.refreshAssignmentsSection = function(section, element) {
+  const assignmentsEntry = section.querySelector('.space-assignments-entry');
+  if (!assignmentsEntry) return;
+
+  assignmentsEntry.innerHTML = this.renderTaskAssignments(element).replace(
+    '<div data-entry-id="space-assignments" class="bio-properties-panel-entry space-assignments-entry">',
+    ''
+  ).replace('</div>', '');
+
+  this.attachAssignmentListeners(section, element);
+};
+
+// NEW: Validate assignment fields
+SpacePropertiesProvider.prototype.validateAssignmentField = function(input, value, type) {
+  const assignmentItem = input.closest('.assignment-item');
+  const validationDiv = assignmentItem?.querySelector('.assignment-validation');
+  const validationMessage = validationDiv?.querySelector('.validation-message');
+
+  if (!validationDiv || !validationMessage) return;
+
+  if (value && !value.match(/^[^.]+\.[^=<>!]+\s*[=<>!]+\s*.+$/)) {
+    validationDiv.style.display = 'block';
+    validationMessage.textContent = type === 'condition'
+      ? 'Format: place.attribute operator value'
+      : 'Format: place.attribute = value';
+    validationMessage.style.color = '#ef6c00';
+    input.style.borderColor = '#ffb74d';
+  } else {
+    validationDiv.style.display = 'none';
+    input.style.borderColor = '';
+  }
+};
+
+// NEW: Escape HTML helper
+SpacePropertiesProvider.prototype.escapeHtml = function(str) {
+  const div = document.createElement('div');
+  div.textContent = str || '';
+  return div.innerHTML;
 };
 
 SpacePropertiesProvider.prototype.updateDestinationAttributes = function(section, element) {
@@ -836,18 +1064,22 @@ SpacePropertiesProvider.prototype.updateFieldVisibility = function(section, sele
   if (unbindingEntry) {
     unbindingEntry.style.display = selectedType === TASK_TYPE_KEYS.UNBINDING ? 'block' : 'none';
   }
+  const assignmentsEntry = section.querySelector('.space-assignments-entry');
+  if (assignmentsEntry) {
+    assignmentsEntry.style.display = selectedType ? 'block' : 'none';
+  }
 };
 
 SpacePropertiesProvider.prototype.getStatusText = function(element, currentType) {
   const translate = this._translate;
-  
+
   if (!currentType) {
     return `<strong>${translate('Status')}:</strong> ${translate('No configuration')} <br><em>${translate('Select a type to configure this task')}</em>`;
   }
-  
+
   const config = getTaskConfig(currentType);
   let status = `<strong>${translate('Status')}:</strong> ${config.typeValue} ${translate('configured')}`;
-  
+
   if (currentType === TASK_TYPE_KEYS.MOVEMENT) {
     const destination = this._extensionService.getDestination(element);
     status += `<br><strong>${translate('Destination')}:</strong> ${destination || `<em>${translate('(required)')}</em>`}`;
@@ -857,28 +1089,45 @@ SpacePropertiesProvider.prototype.getStatusText = function(element, currentType)
   } else if (currentType === TASK_TYPE_KEYS.UNBINDING) {
     status += `<br><em>${translate('Ready to release bound participants')}</em>`;
   }
-  
+
   return status;
 };
 
 SpacePropertiesProvider.prototype.updateSectionIndicators = function(section, element) {
   const header = section.querySelector('.bio-properties-panel-group-header');
   const statusDisplay = section.querySelector('.space-status-display');
-  
+
   const currentType = this._extensionService.getCurrentType(element);
   const hasData = !!currentType;
+
+  const assignmentCount = this._assignmentService.getAssignmentCount(element);
+  const titleDiv = header.querySelector('.bio-properties-panel-group-header-title');
+
+  if (titleDiv) {
+    let badge = titleDiv.querySelector('.assignment-count-badge');
+    if (assignmentCount > 0) {
+      if (!badge) {
+        badge = document.createElement('span');
+        badge.className = 'assignment-count-badge';
+        titleDiv.appendChild(badge);
+      }
+      badge.textContent = assignmentCount;
+    } else if (badge) {
+      badge.remove();
+    }
+  }
 
   // Update header class and dot indicator
   if (hasData) {
     header.classList.remove('empty');
-    
+
     // Add data dot if not present
     let dot = header.querySelector('.bio-properties-panel-dot');
     if (!dot) {
       dot = document.createElement('div');
       dot.className = 'bio-properties-panel-dot';
       dot.title = 'Section contains data';
-      
+
       const buttonsContainer = header.querySelector('.bio-properties-panel-group-header-buttons');
       if (buttonsContainer) {
         buttonsContainer.insertBefore(dot, buttonsContainer.firstChild);
@@ -886,7 +1135,7 @@ SpacePropertiesProvider.prototype.updateSectionIndicators = function(section, el
     }
   } else {
     header.classList.add('empty');
-    
+
     // Remove data dot
     const dot = header.querySelector('.bio-properties-panel-dot');
     if (dot) {
@@ -903,11 +1152,10 @@ SpacePropertiesProvider.prototype.updateSectionIndicators = function(section, el
   }
 };
 
-
-
 SpacePropertiesProvider.prototype.refreshSpaceSection = function(element) {
   const existingSection = document.querySelector('.space-properties-section');
-  if (existingSection && element) {    
+  if (existingSection && element) {
+
     // Update form fields with current XML values
     const currentType = this._extensionService.getCurrentType(element);
     const currentDestination = this._extensionService.getDestination(element);
@@ -924,35 +1172,16 @@ SpacePropertiesProvider.prototype.refreshSpaceSection = function(element) {
     // Update visibility and indicators
     this.updateFieldVisibility(existingSection, currentType);
     this.updateSectionIndicators(existingSection, element);
-    
-    this.updateDestinationAttributes(existingSection, element);
-  }
-};
 
-SpacePropertiesProvider.prototype.getStatusText = function(element, currentType) {
-  const translate = this._translate;
-  
-  if (!currentType) {
-    return `<strong>${translate('Status')}:</strong> ${translate('No configuration')} <br><em>${translate('Select a type to configure this task')}</em>`;
+    this.updateDestinationAttributes(existingSection, element);
+
+    if (currentType) {
+      this.refreshAssignmentsSection(existingSection, element);
+    }
   }
-  
-  const config = getTaskConfig(currentType);
-  let status = `<strong>${translate('Status')}:</strong> ${config.typeValue} ${translate('configured')}`;
-  
-  if (currentType === 'movement') {
-    const destination = this._extensionService.getDestination(element);
-    status += `<br><strong>${translate('Destination')}:</strong> ${destination || `<em>${translate('(required)')}</em>`}`;
-  } else if (currentType === 'binding') {
-    const binding = this._extensionService.getBinding(element);
-    status += `<br><strong>${translate('Participant')}:</strong> ${binding || `<em>${translate('(required)')}</em>`}`;
-  } else if (currentType === 'unbinding') {
-    status += `<br><em>${translate('Ready to release bound participants')}</em>`;
-  }
-  
-  return status;
 };
 
 export default {
-  __init__: ['spacePropertiesProvider'],
-  spacePropertiesProvider: ['type', SpacePropertiesProvider]
+  __init__: [ 'spacePropertiesProvider' ],
+  spacePropertiesProvider: [ 'type', SpacePropertiesProvider ]
 };

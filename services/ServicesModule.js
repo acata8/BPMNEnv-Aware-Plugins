@@ -3,18 +3,21 @@ import { ValidationService } from './ValidationService';
 import { TaskTypeService } from './TaskTypeService';
 import { EnvironmentService } from './EnvironmentService';
 import { MessageFlowXmlService } from './MessageFlowXmlService';
+import { AssignmentService } from './AssignmentService';
 
 export default {
   __init__: [
-    'extensionService', 
-    'validationService', 
+    'extensionService',
+    'validationService',
     'taskTypeService',
     'environmentService',
-    'messageFlowXmlService'
+    'messageFlowXmlService',
+    'assignmentService'
   ],
-  extensionService: ['type', ExtensionService],
-  validationService: ['type', ValidationService],
-  taskTypeService: ['type', TaskTypeService],
-  environmentService: ['type', EnvironmentService],
-  messageFlowXmlService: ['type', MessageFlowXmlService]
+  extensionService: [ 'type', ExtensionService ],
+  validationService: [ 'type', ValidationService ],
+  taskTypeService: [ 'type', TaskTypeService ],
+  environmentService: [ 'type', EnvironmentService ],
+  messageFlowXmlService: [ 'type', MessageFlowXmlService ],
+  assignmentService: [ 'type', AssignmentService ]
 };

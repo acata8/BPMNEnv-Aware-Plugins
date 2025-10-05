@@ -1,6 +1,6 @@
 /**
  * EnvironmentService - Manages environmental configuration data
- * 
+ *
  * Responsibilities:
  * - Store and manage loaded environment configuration
  * - Provide access to physicalPlaces, edges, logical places, and views
@@ -29,13 +29,14 @@ export function EnvironmentService(eventBus, bpenvModeler) {
   this.initializeModeler();
 }
 
-EnvironmentService.$inject = ['eventBus', 'bpenvModeler'];
+EnvironmentService.$inject = [ 'eventBus', 'bpenvModeler' ];
 
 /**
  * Initialize the bpenv-modeler
  */
 EnvironmentService.prototype.initializeModeler = function() {
   try {
+
     // Create container if it doesn't exist
     if (!document.getElementById('bpenv-container')) {
       const container = document.createElement('div');
@@ -47,7 +48,7 @@ EnvironmentService.prototype.initializeModeler = function() {
     // Render the modeler
     this.bpenvModeler.render('bpenv-container');
     this.modelerReady = true;
-    
+
     console.log('BPEnv Modeler initialized successfully');
   } catch (error) {
     console.error('Failed to initialize BPEnv Modeler:', error);
@@ -62,12 +63,12 @@ EnvironmentService.prototype.initializeModeler = function() {
 EnvironmentService.prototype.setConfiguration = function(config) {
   this.currentConfig = config;
   this.isLoaded = true;
-  
+
   // Upload data to modeler if available
   if (this.modelerReady && config?.data) {
     this.uploadToModeler(config.data);
   }
-  
+
   // Fire event for other modules
   this.eventBus.fire('environment.ready', {
     config: this.currentConfig
@@ -85,6 +86,7 @@ EnvironmentService.prototype.uploadToModeler = function(data) {
   }
 
   try {
+
     // Prepare model data in the format expected by bpenv-modeler
     const modelData = {
       physicalPlaces: data.physicalPlaces || [],
@@ -92,9 +94,9 @@ EnvironmentService.prototype.uploadToModeler = function(data) {
       logicalPlaces: data.logicalPlaces || [],
       views: data.views || []
     };
-    
+
     this.bpenvModeler.setModel(modelData);
-    
+
     console.log('Environment data uploaded to BPEnv Modeler successfully', {
       physicalPlaces: modelData.physicalPlaces.length,
       edges: modelData.edges.length,
@@ -126,9 +128,10 @@ EnvironmentService.prototype.syncFromModeler = function() {
   }
 
   try {
+
     // Get current model from modeler
     const modelData = this.bpenvModeler.getModel();
-    
+
     if (!modelData) {
       console.warn('No model data available from BPEnv Modeler');
       return false;
@@ -221,7 +224,7 @@ EnvironmentService.prototype.setModelerEditable = function(editable) {
 EnvironmentService.prototype.clearConfiguration = function() {
   this.currentConfig = null;
   this.isLoaded = false;
-  
+
   // Clear modeler data
   if (this.modelerReady) {
     try {
@@ -235,9 +238,9 @@ EnvironmentService.prototype.clearConfiguration = function() {
       console.error('Failed to clear BPEnv Modeler data:', error);
     }
   }
-  
+
   console.log('Environment configuration cleared');
-  
+
   this.eventBus.fire('environment.cleared');
 };
 
@@ -247,12 +250,12 @@ EnvironmentService.prototype.clearConfiguration = function() {
  */
 EnvironmentService.prototype.handleManualFileLoad = function(file) {
   const reader = new FileReader();
-  
+
   reader.onload = (e) => {
     try {
       const content = e.target.result;
       const data = JSON.parse(content);
-      
+
       // Validate the data structure
       if (!this.validateEnvironmentData(data)) {
         this.eventBus.fire('environment.manual.loaded', {
@@ -261,7 +264,7 @@ EnvironmentService.prototype.handleManualFileLoad = function(file) {
         });
         return;
       }
-      
+
       // Create configuration object
       const config = {
         data: data,
@@ -269,16 +272,16 @@ EnvironmentService.prototype.handleManualFileLoad = function(file) {
         loadedAt: new Date().toISOString(),
         source: 'manual'
       };
-      
+
       // Set the configuration (this will also upload to modeler)
       this.setConfiguration(config);
-      
+
       // Fire success event
       this.eventBus.fire('environment.manual.loaded', {
         success: true,
         config: config
       });
-      
+
     } catch (error) {
       console.error('Failed to parse environment file:', error);
       this.eventBus.fire('environment.manual.loaded', {
@@ -287,14 +290,14 @@ EnvironmentService.prototype.handleManualFileLoad = function(file) {
       });
     }
   };
-  
+
   reader.onerror = () => {
     this.eventBus.fire('environment.manual.loaded', {
       success: false,
       error: 'Failed to read file'
     });
   };
-  
+
   reader.readAsText(file);
 };
 
@@ -333,16 +336,16 @@ EnvironmentService.prototype.validateEnvironmentData = function(data) {
   if (!data || typeof data !== 'object') {
     return false;
   }
-  
+
   // Check for required arrays
-  const requiredArrays = ['physicalPlaces', 'edges', 'logicalPlaces', 'views'];
+  const requiredArrays = [ 'physicalPlaces', 'edges', 'logicalPlaces', 'views' ];
   for (const key of requiredArrays) {
     if (!Array.isArray(data[key])) {
       console.warn(`Missing or invalid ${key} array in environment data`);
       return false;
     }
   }
-  
+
   // Validate physicalPlaces structure if not empty
   if (data.physicalPlaces.length > 0) {
     const place = data.physicalPlaces[0];
@@ -351,7 +354,7 @@ EnvironmentService.prototype.validateEnvironmentData = function(data) {
       return false;
     }
   }
-  
+
   return true;
 };
 
@@ -360,11 +363,12 @@ EnvironmentService.prototype.validateEnvironmentData = function(data) {
  * @returns {boolean} True if data is available
  */
 EnvironmentService.prototype.hasConfiguration = function() {
+
   // Always return true if we loaded a file
   if (this.isLoaded && this.currentConfig !== null) {
     return true;
   }
-  
+
   // Check modeler for any data
   if (this.modelerReady) {
     try {
@@ -372,10 +376,10 @@ EnvironmentService.prototype.hasConfiguration = function() {
       const logicalPlaces = this.bpenvModeler.getLogicalPlaces() || [];
       const edges = this.bpenvModeler.getEdges() || [];
       const views = this.bpenvModeler.getViews() || [];
-      
-      const hasData = physicalPlaces.length > 0 || logicalPlaces.length > 0 || 
+
+      const hasData = physicalPlaces.length > 0 || logicalPlaces.length > 0 ||
                      edges.length > 0 || views.length > 0;
-      
+
       if (hasData) {
         console.log('Modeler has data - keeping config visible');
         return true;
@@ -384,7 +388,7 @@ EnvironmentService.prototype.hasConfiguration = function() {
       console.warn('Error checking modeler data (not hiding config):', error);
     }
   }
-  
+
   return false;
 };
 
@@ -405,10 +409,10 @@ EnvironmentService.prototype.getPlaces = function() {
     try {
       const physicalPlaces = this.bpenvModeler.getPhysicalPlaces() || [];
       const logicalPlaces = this.bpenvModeler.getLogicalPlaces() || [];
-      
+
       // Combine both types for destinations
-      const allPlaces = [...physicalPlaces, ...logicalPlaces];
-      
+      const allPlaces = [ ...physicalPlaces, ...logicalPlaces ];
+
       if (allPlaces.length > 0) {
         console.log(`Found ${physicalPlaces.length} physical + ${logicalPlaces.length} logical physicalPlaces`);
         return allPlaces;
@@ -489,7 +493,7 @@ EnvironmentService.prototype.getCurrentModel = function() {
       console.warn('Failed to get model from modeler, falling back to config:', error);
     }
   }
-  
+
   return this.currentConfig?.data || {
     physicalPlaces: [],
     edges: [],
@@ -588,9 +592,9 @@ EnvironmentService.prototype.getConfigSummary = function() {
       };
 
       // Extract zones and purposes from both place types
-      const allPlaces = [...physicalPlaces, ...logicalPlaces];
-      zones = [...new Set(allPlaces.map(p => p.attributes?.zone).filter(Boolean))];
-      purposes = [...new Set(allPlaces.map(p => p.attributes?.purpose).filter(Boolean))];
+      const allPlaces = [ ...physicalPlaces, ...logicalPlaces ];
+      zones = [ ...new Set(allPlaces.map(p => p.attributes?.zone).filter(Boolean)) ];
+      purposes = [ ...new Set(allPlaces.map(p => p.attributes?.purpose).filter(Boolean)) ];
     } catch (error) {
       console.warn('Error getting modeler summary:', error);
     }
@@ -605,8 +609,8 @@ EnvironmentService.prototype.getConfigSummary = function() {
       logicalPlaces: data.logicalPlaces?.length || 0,
       views: data.views?.length || 0
     };
-    zones = [...new Set(data.physicalPlaces?.map(p => p.attributes?.zone).filter(Boolean))];
-    purposes = [...new Set(data.physicalPlaces?.map(p => p.attributes?.purpose).filter(Boolean))];
+    zones = [ ...new Set(data.physicalPlaces?.map(p => p.attributes?.zone).filter(Boolean)) ];
+    purposes = [ ...new Set(data.physicalPlaces?.map(p => p.attributes?.purpose).filter(Boolean)) ];
   }
 
   return {
@@ -627,7 +631,7 @@ EnvironmentService.prototype.getConfigSummary = function() {
  */
 EnvironmentService.prototype.isValidDestination = function(destination) {
   if (!destination || !this.hasConfiguration()) return false;
-  
+
   const physicalPlaces = this.getPlaces();
   return physicalPlaces.some(place => place.name === destination);
 };
@@ -640,14 +644,14 @@ EnvironmentService.prototype.isValidDestination = function(destination) {
  */
 EnvironmentService.prototype.getDestinationSuggestions = function(partial, maxSuggestions = 5) {
   if (!partial || !this.hasConfiguration()) return [];
-  
+
   const physicalPlaces = this.getPlaces();
   const partialLower = partial.toLowerCase();
-  
+
   const suggestions = physicalPlaces
     .filter(place => place.name && place.name.toLowerCase().includes(partialLower))
     .map(place => place.name)
     .slice(0, maxSuggestions);
-    
+
   return suggestions;
 };

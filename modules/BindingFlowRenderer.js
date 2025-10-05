@@ -1,4 +1,4 @@
-import { EXTENSION_TYPES, TASK_TYPE_KEYS } from './TaskTypes';
+import { TASK_TYPE_KEYS } from './TaskTypes';
 
 /**
  * Custom renderer for binding/unbinding message flows
@@ -81,9 +81,9 @@ BindingFlowRenderer.prototype.ensureCustomMarkers = function() {
     container.insertBefore(defs, container.firstChild);
   }
 
-    const bindingDot = this.createDotMarker('binding-dot');
-    defs.appendChild(bindingDot);
-  
+  const bindingDot = this.createDotMarker('binding-dot');
+  defs.appendChild(bindingDot);
+
 };
 
 /**
@@ -94,6 +94,7 @@ BindingFlowRenderer.prototype.createDotMarker = function(id) {
   marker.setAttribute('id', id);
   marker.setAttribute('viewBox', '0 0 35 35');
   marker.setAttribute('fill', '#fff');
+
   // Adjust refX based on whether it's start or end marker
   marker.setAttribute('refX', '10');
   marker.setAttribute('refY', '10');
@@ -101,7 +102,7 @@ BindingFlowRenderer.prototype.createDotMarker = function(id) {
   marker.setAttribute('markerHeight', '35');
   marker.setAttribute('orient', 'auto');
 
- const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
   rect.setAttribute('x', '5');
   rect.setAttribute('y', '5');
   rect.setAttribute('width', '10');
@@ -160,6 +161,7 @@ BindingFlowRenderer.prototype.updateMessageFlow = function(element) {
         path.setAttribute('marker-start', 'url(#binding-dot)');
         path.setAttribute('marker-end', 'url(#binding-dot)');
       } else {
+
         // Reset to default for regular message flows
         path.removeAttribute('marker-start');
         path.removeAttribute('marker-end');
