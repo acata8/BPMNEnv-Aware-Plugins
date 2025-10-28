@@ -61,9 +61,9 @@ Environment File Format
 Properties Panel
 
 Select any task or click canvas background
-Properties Panel → "Environment" section
-Click "Load Environment File" button
-Browse to your environment.json
-Confirmation message appears when loaded
+1. Properties Panel → "Environment" section
+2. Click "Load Environment File" button
+3. Browse to your environment.json
+4. Confirmation message appears when loaded
 
 
