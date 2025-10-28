@@ -35,7 +35,8 @@ cd camunda-modeler
 # Import Environment File
 The plugin uses environment.json to provide place autocomplete and validation.
 Environment File Format
-json{
+```json
+{
   "places": [
     {
       "id": "room-101",
@@ -59,6 +60,7 @@ json{
   "logicalPlaces": [],
   "views": []
 }
+```
 
 ### Load Environment in Modeler
 Properties Panel
