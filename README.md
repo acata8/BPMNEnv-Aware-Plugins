@@ -34,7 +34,7 @@ Navigate to the Camunda Modeler client public folder:
 cd camunda-modeler/client/public
 ```
 
-Replace the content of `index.html` with [this file](../modeler/index.html).
+Replace the content of `index.html` with [this file](modeler/index.html).
 
 This adds:
 - Floating button (🗺️) to open environment viewer
