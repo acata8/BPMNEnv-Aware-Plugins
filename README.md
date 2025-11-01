@@ -375,11 +375,6 @@ The plugin uses environment.json to provide place autocomplete and validation.
 3. Click "Load Environment File"
 4. Browse to your `environment.json`
 
-**Sample environment location:**
-```
-camunda-modeler/resources/plugins/camunda-spatial-bpmn/sample/environment.json
-```
-
 ## Project Structure
 ```
 camunda-spatial-bpmn/
